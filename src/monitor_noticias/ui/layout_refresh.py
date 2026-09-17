@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QFrame, QLabel, QListWidget, QPushButton, QWidget
 HOME_LIGHT_OVERRIDE = """
 QWidget#homeDashboard, QWidget#homeBody { background:#F6FAFF; color:#0B2860; }
 QScrollArea#homeScroll, QScrollArea#homeScroll QWidget#qt_scrollarea_viewport { background:#F6FAFF; }
-QLabel { color:#0B2860; }
+QLabel { color:#0B2860; background:transparent; }
 QLabel#homeWelcome, QLabel#heroTitle, QLabel#metricValue, QLabel#cardTitle { color:#0A225B; }
 QLabel#homeSubtitle, QLabel#cardSubtitle, QLabel#heroBody, QLabel#summaryName,
 QLabel#smallContent, QLabel#footerText, QLabel#footerStatus { color:#5A7197; }
@@ -22,13 +22,17 @@ QLabel#metricTitle { color:#4F678E; }
 QFrame#statusPanel { background:#ECFBF5; border:1px solid #A9E9D1; }
 QLabel#statusReady { color:#07865F; }
 QLabel#statusPct { color:#0A225B; }
-QProgressBar#homeProgress { background:#E1ECF7; }
-QProgressBar#homeProgress::chunk { background:#12B981; }
+QProgressBar#homeProgress { background:#E1ECF7; border:0; border-radius:3px; }
+QProgressBar#homeProgress::chunk { background:#12B981; border-radius:3px; }
 QFrame#scheduleBox { background:#F8FBFF; border:1px solid #D9E7F6; border-radius:8px; }
 QLabel#scheduleName { color:#19376C; }
 QLabel#summaryBlue { color:#087AF7; }
 QLabel#summaryPurple { color:#7A3DF0; }
 QLabel#summaryOrange { color:#E89400; }
+QPushButton#quickBlue { background:#087AF7; color:#FFFFFF; border:1px solid #0B74E5; border-radius:10px; }
+QPushButton#quickPurple { background:#7A3DF0; color:#FFFFFF; border:1px solid #6B35DA; border-radius:10px; }
+QPushButton#quickOrange { background:#F4A000; color:#FFFFFF; border:1px solid #DF9200; border-radius:10px; }
+QPushButton#quickGreen { background:#0AA875; color:#FFFFFF; border:1px solid #079466; border-radius:10px; }
 """
 
 
@@ -88,13 +92,31 @@ def _polish_home(window: QWidget) -> None:
     home = window.findChild(QWidget, "homeDashboard")
     if home is None:
         return
-    home.setStyleSheet(home.styleSheet() + HOME_LIGHT_OVERRIDE)
+
+    # Substitui o tema escuro nativo em vez de apenas anexar regras. Isso evita
+    # que seletores do stylesheet antigo continuem vencendo em widgets filhos.
+    home.setStyleSheet(HOME_LIGHT_OVERRIDE)
+
     for frame in home.findChildren(QFrame):
-        style = frame.styleSheet()
-        if "background:#04223c" in style:
-            frame.setStyleSheet("QFrame{background:#FFFFFF;border:1px solid #D7E6F7;border-radius:10px;}")
-        elif "background:#031a2e" in style:
-            frame.setStyleSheet("QFrame{background:#FFFFFF;border-top:1px solid #D7E6F7;border-radius:0;}")
+        name = frame.objectName()
+        if name in {"metricCard", "dashboardCard", "miniCard"}:
+            frame.setStyleSheet(
+                "QFrame{background:#FFFFFF;border:1px solid #D7E6F7;border-radius:12px;}"
+            )
+        elif name == "statusPanel":
+            frame.setStyleSheet(
+                "QFrame{background:#ECFBF5;border:1px solid #A9E9D1;border-radius:9px;}"
+            )
+        elif name == "scheduleBox":
+            frame.setStyleSheet(
+                "QFrame{background:#F8FBFF;border:1px solid #D9E7F6;border-radius:8px;}"
+            )
+        else:
+            style = frame.styleSheet().lower()
+            if any(token in style for token in ("#04223c", "#031a2e", "#052d4d", "#052d42", "#06375c", "#05304e", "#031f39")):
+                frame.setStyleSheet(
+                    "QFrame{background:#FFFFFF;border:1px solid #D7E6F7;border-radius:10px;}"
+                )
 
 
 def _polish_pdf(page: QWidget) -> None:
@@ -266,6 +288,45 @@ def _polish_history(page: QWidget) -> None:
             button.setMaximumHeight(38)
 
 
+def _polish_video_editor(page: QWidget) -> None:
+    editor = getattr(page, "editor", None)
+    if editor is None:
+        return
+
+    central = editor.centralWidget()
+    if central is not None:
+        central.setStyleSheet("background:#F7FAFE;color:#0B2860;")
+
+    for frame in editor.findChildren(QFrame):
+        if frame.objectName() == "panel":
+            frame.setGraphicsEffect(None)
+            frame.setStyleSheet(
+                "QFrame#panel{background:#FFFFFF;border:1px solid #D7E6F7;border-radius:10px;}"
+            )
+
+    for label in editor.findChildren(QLabel):
+        style = label.styleSheet().lower()
+        if any(token in style for token in ("#0a1320", "#09121f", "#07111f", "#0d1828", "#18263a")):
+            label.setStyleSheet(
+                "color:#5F7398;background:#F8FBFF;border:1px solid #D7E6F7;"
+                "border-radius:8px;padding:8px;"
+            )
+
+    media_list = getattr(editor, "media_list", None)
+    if isinstance(media_list, QListWidget):
+        media_list.setStyleSheet(
+            "QListWidget{background:#FFFFFF;color:#17376D;border:1px solid #D7E6F7;border-radius:8px;padding:6px;}"
+            "QListWidget::item{background:#FFFFFF;border:1px solid #E0EAF5;border-radius:7px;padding:8px;margin:2px 0;}"
+            "QListWidget::item:selected{background:#EAF4FF;color:#075FDB;border:1px solid #6DA9EA;}"
+        )
+
+    video_widget = getattr(editor, "video_widget", None)
+    if video_widget is not None:
+        video_widget.setStyleSheet(
+            "background:#05070A;border:1px solid #C7D8EB;border-radius:8px;"
+        )
+
+
 def apply_reference_layout(window: QWidget) -> None:
     """Aplica o acabamento visual de referência sem alterar lógica de negócio."""
     _polish_shell(window)
@@ -289,3 +350,5 @@ def apply_reference_layout(window: QWidget) -> None:
             _polish_terms(page)
         elif name == "HistoryPage":
             _polish_history(page)
+        elif name == "VideoEditorPage":
+            _polish_video_editor(page)
