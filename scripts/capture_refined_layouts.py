@@ -11,19 +11,31 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from PySide6.QtWidgets import QApplication
+from monitor_noticias.ui.density_tuning import apply_density_tuning
+from monitor_noticias.ui.layout_refresh import apply_reference_layout
 from monitor_noticias.ui.main_window import MainWindow
+from monitor_noticias.ui.pdf_visual_patch import apply_pdf_visual_patch
 from monitor_noticias.ui.sections import Section
+
+
+def polish(window: MainWindow) -> None:
+    """Replica o acabamento executado por Application.run()."""
+    apply_reference_layout(window)
+    apply_density_tuning(window)
+    apply_pdf_visual_patch(window)
 
 
 def main() -> int:
     app = QApplication.instance() or QApplication([])
     window = MainWindow()
     window._timer.stop()
+    polish(window)
 
     # Gate funcional: trocar de seção não pode derrubar o estado maximizado.
     window.showMaximized()
     app.processEvents()
     window.navigate(Section.NEWS)
+    polish(window)
     app.processEvents()
     app.processEvents()
     if not window.isMaximized():
@@ -32,6 +44,7 @@ def main() -> int:
     window.showNormal()
     window.resize(1721, 914)
     window.show()
+    polish(window)
     app.processEvents()
 
     out_dir = ROOT / "artifacts" / "refined-ui"
@@ -52,10 +65,11 @@ def main() -> int:
     for section, name in targets:
         window.navigate(section)
         window.pages[section].refresh(window.controller.state)
-        # Atualiza relógio, status de proxy/automação, badge e rodapé sem
-        # depender do QTimer; o clima permanece desabilitado no gate visual.
         window._tick()
+        polish(window)
         app.processEvents()
+        app.processEvents()
+        polish(window)
         app.processEvents()
         if section == Section.VIDEO_EDITOR:
             video_page = window.pages[section]
