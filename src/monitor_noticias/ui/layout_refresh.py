@@ -32,6 +32,32 @@ QLabel#summaryOrange { color:#E89400; }
 """
 
 
+def _polish_sidebar(window: QWidget) -> None:
+    sidebar = getattr(window, "sidebar", None)
+    if sidebar is None:
+        return
+    sidebar.setStyleSheet(
+        "QFrame#sidebar{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #07386F,stop:1 #032F63);"
+        "border:0;border-radius:0;}"
+        "QLabel#brandTitle{color:#FFFFFF;font-size:17px;font-weight:800;}"
+        "QLabel#brandSub{color:#C9DAF0;font-size:10px;}"
+        "QPushButton#navButton{color:#F2F7FF;background:transparent;border:0;border-radius:9px;padding:9px 12px;text-align:left;font-size:13px;font-weight:500;}"
+        "QPushButton#navButton:hover{background:#0B4A87;}"
+        "QPushButton#navButton:checked{background:#1384F4;border:1px solid #42A8FF;color:#FFFFFF;font-weight:800;}"
+        "QFrame#sideStatusCard{background:#073C72;border:1px solid #2C659B;border-radius:10px;}"
+        "QLabel#sideStatusTitle{color:#FFFFFF;font-size:10px;font-weight:800;}"
+        "QLabel#sideStatusText,QLabel#sideStatusGood{color:#D2E0F1;font-size:9px;}"
+        "QLabel#sideMotto{color:#8DD3FF;font-size:8px;font-weight:700;letter-spacing:1px;}"
+    )
+    mark = sidebar.findChild(QLabel, "anchorMark")
+    if mark is not None:
+        mark.setText("▤")
+        mark.setStyleSheet(
+            "color:#0A2A62;background:#FFD35A;border:1px solid #F2C33B;border-radius:10px;"
+            "font-family:'Segoe UI Symbol';font-size:26px;font-weight:900;padding:4px;"
+        )
+
+
 def _polish_home(window: QWidget) -> None:
     home = window.findChild(QWidget, "homeDashboard")
     if home is None:
@@ -90,6 +116,7 @@ def _polish_extractor(page: QWidget) -> None:
 
 def apply_reference_layout(window: QWidget) -> None:
     """Aplica o acabamento visual de referência sem alterar lógica de negócio."""
+    _polish_sidebar(window)
     _polish_home(window)
     pages = getattr(window, "pages", {})
     for page in pages.values() if isinstance(pages, dict) else []:
