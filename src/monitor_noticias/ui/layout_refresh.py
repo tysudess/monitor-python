@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import QFrame, QLabel, QListWidget, QPushButton, QWidget
 
 
 HOME_LIGHT_OVERRIDE = """
@@ -149,6 +149,69 @@ def _polish_search_pages(page: QWidget) -> None:
             )
 
 
+def _polish_sources(page: QWidget) -> None:
+    source_list = getattr(page, "list", None)
+    if isinstance(source_list, QListWidget):
+        source_list.setStyleSheet(
+            "QListWidget{background:transparent;border:0;padding:2px;}"
+            "QListWidget::item{background:#FFFFFF;border:1px solid #DCE8F5;border-radius:10px;margin:3px 0;padding:0;}"
+            "QListWidget::item:selected{background:#F3F8FF;border:1px solid #AFCDED;}"
+        )
+    for label in page.findChildren(QLabel):
+        text = label.text().strip()
+        if text in {"Selecionada", "Incluída por Todos", "LIGADO"}:
+            label.setStyleSheet(
+                "color:#07865F;background:#ECFBF5;border:1px solid #A9E9D1;"
+                "border-radius:8px;padding:5px 9px;font-weight:700;"
+            )
+        elif text in {"Disponível", "DESLIGADO", "N/A"}:
+            label.setStyleSheet(
+                "color:#5E769C;background:#F6F9FD;border:1px solid #D7E4F2;"
+                "border-radius:8px;padding:5px 9px;font-weight:700;"
+            )
+        elif len(text) <= 3 and text.isupper() and text.isalpha():
+            style = label.styleSheet()
+            if "background:#087af7" in style:
+                label.setStyleSheet(
+                    "color:#087AF7;background:#EAF4FF;border:1px solid #C8DFF6;"
+                    "border-radius:9px;font-weight:800;"
+                )
+
+
+def _polish_terms(page: QWidget) -> None:
+    for label in page.findChildren(QLabel):
+        text = label.text().strip()
+        style = label.styleSheet()
+        if text in {"▶", "▤"} and "background:#" in style:
+            if text == "▶":
+                label.setStyleSheet(
+                    "color:#7A3DF0;background:#F3EDFF;border:1px solid #DCCCF9;"
+                    "border-radius:10px;font-size:23px;"
+                )
+            else:
+                label.setStyleSheet(
+                    "color:#087AF7;background:#EAF4FF;border:1px solid #C8DFF6;"
+                    "border-radius:10px;font-size:23px;"
+                )
+        if text.endswith("termo(s)"):
+            label.setStyleSheet(
+                "color:#075FDB;background:#EAF4FF;border:1px solid #C8DFF6;"
+                "border-radius:8px;padding:8px 12px;font-weight:800;"
+            )
+    for lst in page.findChildren(QListWidget):
+        lst.setStyleSheet(
+            "QListWidget{background:#F8FBFF;border:1px solid #D7E6F7;border-radius:10px;padding:6px;color:#17376D;}"
+            "QListWidget::item{background:#FFFFFF;border:1px solid #E0EAF5;border-radius:8px;padding:8px;margin:3px 0;}"
+            "QListWidget::item:selected{background:#EAF4FF;border:1px solid #6DA9EA;color:#075FDB;}"
+        )
+
+
+def _polish_history(page: QWidget) -> None:
+    for button in page.findChildren(QPushButton):
+        if button.text().strip() in {"Notícias", "Vídeos"}:
+            button.setMinimumHeight(38)
+
+
 def apply_reference_layout(window: QWidget) -> None:
     """Aplica o acabamento visual de referência sem alterar lógica de negócio."""
     _polish_home(window)
@@ -165,3 +228,9 @@ def apply_reference_layout(window: QWidget) -> None:
             _polish_settings(page)
         elif name in {"NewsPage", "VideosPage"}:
             _polish_search_pages(page)
+        elif name == "SourcesPage":
+            _polish_sources(page)
+        elif name == "TermsPage":
+            _polish_terms(page)
+        elif name == "HistoryPage":
+            _polish_history(page)
