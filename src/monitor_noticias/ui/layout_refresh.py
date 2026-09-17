@@ -32,32 +32,6 @@ QLabel#summaryOrange { color:#E89400; }
 """
 
 
-def _polish_sidebar(window: QWidget) -> None:
-    sidebar = getattr(window, "sidebar", None)
-    if sidebar is None:
-        return
-    sidebar.setStyleSheet(
-        "QFrame#sidebar{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #07386F,stop:1 #032F63);"
-        "border:0;border-radius:0;}"
-        "QLabel#brandTitle{color:#FFFFFF;font-size:17px;font-weight:800;}"
-        "QLabel#brandSub{color:#C9DAF0;font-size:10px;}"
-        "QPushButton#navButton{color:#F2F7FF;background:transparent;border:0;border-radius:9px;padding:9px 12px;text-align:left;font-size:13px;font-weight:500;}"
-        "QPushButton#navButton:hover{background:#0B4A87;}"
-        "QPushButton#navButton:checked{background:#1384F4;border:1px solid #42A8FF;color:#FFFFFF;font-weight:800;}"
-        "QFrame#sideStatusCard{background:#073C72;border:1px solid #2C659B;border-radius:10px;}"
-        "QLabel#sideStatusTitle{color:#FFFFFF;font-size:10px;font-weight:800;}"
-        "QLabel#sideStatusText,QLabel#sideStatusGood{color:#D2E0F1;font-size:9px;}"
-        "QLabel#sideMotto{color:#8DD3FF;font-size:8px;font-weight:700;letter-spacing:1px;}"
-    )
-    mark = sidebar.findChild(QLabel, "anchorMark")
-    if mark is not None:
-        mark.setText("▤")
-        mark.setStyleSheet(
-            "color:#0A2A62;background:#FFD35A;border:1px solid #F2C33B;border-radius:10px;"
-            "font-family:'Segoe UI Symbol';font-size:26px;font-weight:900;padding:4px;"
-        )
-
-
 def _polish_home(window: QWidget) -> None:
     home = window.findChild(QWidget, "homeDashboard")
     if home is None:
@@ -111,12 +85,72 @@ def _polish_extractor(page: QWidget) -> None:
         )
     for label in page.findChildren(QLabel):
         if label.text().startswith("MP4"):
-            label.setStyleSheet("color:#8B5A00;border:1px solid #F1CF76;background:#FFF7DE;border-radius:7px;padding:6px 10px;font-weight:700;")
+            label.setStyleSheet(
+                "color:#8B5A00;border:1px solid #F1CF76;background:#FFF7DE;"
+                "border-radius:7px;padding:6px 10px;font-weight:700;"
+            )
+
+
+def _polish_demands(page: QWidget) -> None:
+    for frame in page.findChildren(QFrame):
+        if frame.objectName() == "statusCard":
+            frame.setStyleSheet(
+                "QFrame#statusCard{background:#ECFBF5;border:1px solid #A9E9D1;border-radius:12px;}"
+            )
+    for label in page.findChildren(QLabel):
+        text = label.text().strip()
+        if text == "▣":
+            label.setStyleSheet(
+                "color:#E7A800;background:#FFF7DE;border:1px solid #F0D487;"
+                "border-radius:9px;font-size:24px;"
+            )
+        elif text.startswith("Status:"):
+            label.setStyleSheet("color:#07865F;font-size:12px;font-weight:800;")
+
+
+def _polish_settings(page: QWidget) -> None:
+    for label in page.findChildren(QLabel):
+        text = label.text().strip()
+        style = label.styleSheet()
+        if text in {"▣", "▤", "▶"} and ("background:#" in style or "border:1px" in style):
+            if text == "▶":
+                label.setStyleSheet(
+                    "color:#7A3DF0;background:#F3EDFF;border:1px solid #DCCCF9;"
+                    "border-radius:10px;font-size:22px;font-weight:800;"
+                )
+            elif text == "▣":
+                label.setStyleSheet(
+                    "color:#E7A800;background:#FFF7DE;border:1px solid #F0D487;"
+                    "border-radius:10px;font-size:22px;font-weight:800;"
+                )
+            else:
+                label.setStyleSheet(
+                    "color:#087AF7;background:#EAF4FF;border:1px solid #C8DFF6;"
+                    "border-radius:10px;font-size:22px;font-weight:800;"
+                )
+        if text in {"Automático ativo", "Proxy salvo", "Automação salva", "Configurações carregadas"}:
+            label.setStyleSheet(
+                "color:#07865F;background:#ECFBF5;border:1px solid #A9E9D1;"
+                "border-radius:8px;padding:6px 10px;font-weight:700;"
+            )
+    for frame in page.findChildren(QFrame):
+        style = frame.styleSheet()
+        if "background:#0b5f85" in style:
+            frame.setStyleSheet("background:#D9E7F6;border:0;")
+
+
+def _polish_search_pages(page: QWidget) -> None:
+    for label in page.findChildren(QLabel):
+        style = label.styleSheet()
+        if "background:#3a3215" in style:
+            label.setStyleSheet(
+                "color:#8A6300;background:#FFF8DE;border:1px solid #F0D889;"
+                "border-radius:7px;padding:6px 9px;"
+            )
 
 
 def apply_reference_layout(window: QWidget) -> None:
     """Aplica o acabamento visual de referência sem alterar lógica de negócio."""
-    _polish_sidebar(window)
     _polish_home(window)
     pages = getattr(window, "pages", {})
     for page in pages.values() if isinstance(pages, dict) else []:
@@ -125,3 +159,9 @@ def apply_reference_layout(window: QWidget) -> None:
             _polish_pdf(page)
         elif name == "RefinedExtractorPage":
             _polish_extractor(page)
+        elif name == "DemandsPage":
+            _polish_demands(page)
+        elif name == "SettingsPage":
+            _polish_settings(page)
+        elif name in {"NewsPage", "VideosPage"}:
+            _polish_search_pages(page)
