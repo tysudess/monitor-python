@@ -1,0 +1,26 @@
+name: Passo 14 live smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - migration/python-foundation
+    paths:
+      - '.github/workflows/pass14-live-smoke.yml'
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+      - name: Live news and video collector smoke
+        env:
+          PYTHONPATH: src
+        run: python scripts/pass14_live_smoke.py
+
+# Passo 14: trigger controlado para validar o código de integração corrente.
