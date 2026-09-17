@@ -135,8 +135,16 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
 
-          gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" 2>$null | Out-Null
-          if($LASTEXITCODE -eq 0){ throw "Release $env:RELEASE_TAG já existe; não sobrescrever." }
+          # Remove drafts antigos da mesma tag deixados por tentativas interrompidas.
+          $releases=gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" | ConvertFrom-Json
+          $publishedExisting=@($releases | Where-Object { $_.tag_name -eq $env:RELEASE_TAG -and -not $_.draft })
+          if($publishedExisting.Count -gt 0){ throw "Release $env:RELEASE_TAG já publicada; não sobrescrever." }
+          $staleDrafts=@($releases | Where-Object { $_.tag_name -eq $env:RELEASE_TAG -and $_.draft })
+          foreach($draft in $staleDrafts){
+            Write-Host "Removendo draft antigo id=$($draft.id)"
+            gh api --method DELETE "repos/$env:GITHUB_REPOSITORY/releases/$($draft.id)"
+            if($LASTEXITCODE -ne 0){ throw "Falha ao remover draft antigo $($draft.id)." }
+          }
 
           $zip=(Resolve-Path "portable-out/$env:PORTABLE_NAME").Path
           $info=(Resolve-Path 'portable/FFMPEG_SOURCE_INFO.txt').Path
@@ -177,16 +185,11 @@ jobs:
           $releaseId=[string]$created.id
           Write-Host "DRAFT_CREATED_ID=$releaseId"
 
-          gh api --hostname uploads.github.com --method POST `
-            -H 'Content-Type: application/zip' `
-            "repos/$env:GITHUB_REPOSITORY/releases/$releaseId/assets?name=$env:PORTABLE_NAME" `
-            --input $zip | Out-Null
+          # Usa o comando nativo do GitHub CLI, que resolve corretamente o endpoint uploads.github.com.
+          gh release upload $env:RELEASE_TAG $zip --clobber
           if($LASTEXITCODE -ne 0){ throw 'Falha ao enviar ZIP portable.' }
 
-          gh api --hostname uploads.github.com --method POST `
-            -H 'Content-Type: text/plain' `
-            "repos/$env:GITHUB_REPOSITORY/releases/$releaseId/assets?name=FFMPEG_SOURCE_INFO.txt" `
-            --input $info | Out-Null
+          gh release upload $env:RELEASE_TAG $info --clobber
           if($LASTEXITCODE -ne 0){ throw 'Falha ao enviar FFMPEG_SOURCE_INFO.txt.' }
 
           $assets=gh api "repos/$env:GITHUB_REPOSITORY/releases/$releaseId/assets?per_page=100" | ConvertFrom-Json
