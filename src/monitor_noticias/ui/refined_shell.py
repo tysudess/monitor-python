@@ -32,19 +32,19 @@ class RadarHeader(QFrame):
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("pageHeader")
-        self.setMinimumHeight(92)
-        self.setMaximumHeight(104)
+        self.setMinimumHeight(78)
+        self.setMaximumHeight(86)
         self._weather_thread: WeatherThread | None = None
         self._weather_last_started = 0.0
         self._weather_value: float | None = None
 
         root = QHBoxLayout(self)
-        root.setContentsMargins(16, 10, 12, 10)
-        root.setSpacing(12)
+        root.setContentsMargins(14, 6, 10, 6)
+        root.setSpacing(9)
 
         self.icon = QLabel("▤")
         self.icon.setObjectName("pageIcon")
-        self.icon.setFixedWidth(44)
+        self.icon.setFixedWidth(38)
         self.icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(self.icon)
 
@@ -53,7 +53,7 @@ class RadarHeader(QFrame):
         kicker_row = QHBoxLayout()
         kicker_row.setSpacing(6)
         gold = QLabel("▌")
-        gold.setStyleSheet("color:#F2B715;font-size:22px;font-weight:900;")
+        gold.setStyleSheet("color:#F2B715;font-size:18px;font-weight:900;")
         kicker_row.addWidget(gold)
         self.kicker = QLabel("CENTRAL DE INTELIGÊNCIA DE MÍDIA")
         self.kicker.setObjectName("pageKicker")
@@ -80,9 +80,9 @@ class RadarHeader(QFrame):
         action = QFrame()
         action.setObjectName("pillBlue")
         al = QHBoxLayout(action)
-        al.setContentsMargins(13, 8, 13, 8)
+        al.setContentsMargins(10, 6, 10, 6)
         diamond = QLabel("◇")
-        diamond.setStyleSheet("color:#117AF0;font-size:20px;font-weight:900;")
+        diamond.setStyleSheet("color:#117AF0;font-size:17px;font-weight:900;")
         diamond.setAlignment(Qt.AlignmentFlag.AlignCenter)
         al.addWidget(diamond)
         root.addWidget(action, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -90,27 +90,27 @@ class RadarHeader(QFrame):
         clock = QFrame()
         clock.setObjectName("pillBlue")
         clock_box = QHBoxLayout(clock)
-        clock_box.setContentsMargins(12, 7, 12, 7)
-        clock_box.setSpacing(12)
+        clock_box.setContentsMargins(10, 5, 10, 5)
+        clock_box.setSpacing(9)
 
         date_time = QVBoxLayout()
         date_time.setSpacing(0)
         self.date_label = QLabel()
         self.date_label.setObjectName("smallText")
         self.clock_label = QLabel()
-        self.clock_label.setStyleSheet("color:#08245A;font-size:17px;font-weight:800;")
+        self.clock_label.setStyleSheet("color:#08245A;font-size:15px;font-weight:800;")
         date_time.addWidget(self.date_label)
         date_time.addWidget(self.clock_label)
         clock_box.addLayout(date_time)
 
         divider = QFrame()
         divider.setFixedWidth(1)
-        divider.setMinimumHeight(42)
+        divider.setMinimumHeight(34)
         divider.setStyleSheet("background:#D9E6F3;border:0;")
         clock_box.addWidget(divider)
 
         sun = QLabel("☀")
-        sun.setStyleSheet("color:#F6B700;font-size:28px;font-weight:800;")
+        sun.setStyleSheet("color:#F6B700;font-size:23px;font-weight:800;")
         clock_box.addWidget(sun)
 
         wt = QVBoxLayout()
@@ -118,7 +118,7 @@ class RadarHeader(QFrame):
         city = QLabel("Brasília - DF")
         city.setObjectName("smallText")
         self.weather_temp = QLabel("--°C")
-        self.weather_temp.setStyleSheet("color:#08245A;font-size:15px;font-weight:800;")
+        self.weather_temp.setStyleSheet("color:#08245A;font-size:13px;font-weight:800;")
         wt.addWidget(city)
         wt.addWidget(self.weather_temp)
         clock_box.addLayout(wt)
@@ -129,10 +129,10 @@ class RadarHeader(QFrame):
         frame = QFrame()
         frame.setObjectName(name)
         lay = QHBoxLayout(frame)
-        lay.setContentsMargins(11, 8, 11, 8)
-        lay.setSpacing(7)
+        lay.setContentsMargins(9, 6, 9, 6)
+        lay.setSpacing(6)
         icon = QLabel(glyph)
-        icon.setStyleSheet(f"color:{color};font-size:13px;font-weight:900;")
+        icon.setStyleSheet(f"color:{color};font-size:11px;font-weight:900;")
         label = QLabel(text)
         label.setStyleSheet("color:#11386D;font-weight:700;")
         lay.addWidget(icon)
@@ -145,7 +145,7 @@ class RadarHeader(QFrame):
         glyph, color = SECTION_ACCENTS.get(title, ("▤", "#167CF2"))
         self.icon.setText(glyph)
         self.icon.setStyleSheet(
-            f"color:{color};font-size:30px;font-weight:800;background:#EEF6FF;"
+            f"color:{color};font-size:25px;font-weight:800;background:#EEF6FF;"
             "border:1px solid #D9E9F8;border-radius:10px;padding:4px;"
         )
 
@@ -190,10 +190,10 @@ class TechFooter(QFrame):
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("footerFrame")
-        self.setFixedHeight(40)
+        self.setFixedHeight(34)
         row = QHBoxLayout(self)
-        row.setContentsMargins(2, 5, 2, 5)
-        row.setSpacing(12)
+        row.setContentsMargins(2, 3, 2, 3)
+        row.setSpacing(9)
         self.left = QLabel("Monitor de Notícias v4.0.2   •   Inteligência de mídia")
         self.left.setObjectName("smallText")
         row.addWidget(self.left)
