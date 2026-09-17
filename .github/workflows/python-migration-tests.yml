@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - migration/python-foundation
     paths:
       - 'src/**'
@@ -42,8 +43,9 @@ jobs:
       - name: Run complete test suite
         env:
           QT_QPA_PLATFORM: offscreen
+          MONITOR_DISABLE_WEATHER: '1'
         run: python -m pytest -q
 
-# Step 8: matrix Windows/Ubuntu valida regressão completa e integrações nativas com dados fictícios.
-# Step 9: a mesma matriz executa também os testes reais da UI PySide6 em modo offscreen.
-# Step 12: QtMultimedia exige libpulse0 no runner Linux para carregar QMediaPlayer/QAudioOutput.
+# Matrix Windows/Ubuntu valida regressão completa e a UI PySide6 em modo offscreen.
+# A branch main agora é validada a cada alteração em src/tests/configuração de build.
+# QtMultimedia exige libpulse0 no runner Linux para carregar QMediaPlayer/QAudioOutput.
