@@ -8,11 +8,11 @@ from PySide6.QtWidgets import QWidget
 
 from .core import Clip, format_time, total_duration
 
-BG = "#07111f"
-BORDER = "#243650"
-TEXT = "#f1f5ff"
-MUTED = "#a8b4c7"
-FADED = "#66758d"
+BG = "#F8FBFF"
+BORDER = "#D2E1F0"
+TEXT = "#0A2A61"
+MUTED = "#61789E"
+FADED = "#8DA0BA"
 BLUE = "#168fff"
 BLUE_2 = "#37a6ff"
 
@@ -90,7 +90,7 @@ class TimelineWidget(QWidget):
 
         rect = self._timeline_rect()
         painter.setPen(QPen(QColor(BORDER), 1))
-        painter.setBrush(QBrush(QColor("#0a1320")))
+        painter.setBrush(QBrush(QColor("#FFFFFF")))
         painter.drawRoundedRect(rect, 4, 4)
 
         painter.setFont(QFont("Segoe UI", 9))
@@ -116,17 +116,17 @@ class TimelineWidget(QWidget):
                 audio_rect = QRectF(cursor + 3, 96, width - 6, 28)
                 selected = index == self.selected_index
                 painter.setPen(QPen(QColor(BLUE_2 if selected else BORDER), 2 if selected else 1))
-                painter.setBrush(QBrush(QColor(BLUE if selected else "#123d6a")))
+                painter.setBrush(QBrush(QColor(BLUE if selected else "#EAF4FF")))
                 painter.drawRoundedRect(video_rect, 4, 4)
-                painter.setPen(QColor(TEXT))
+                painter.setPen(QColor("#FFFFFF" if selected else TEXT))
                 painter.drawText(
                     video_rect.adjusted(8, 0, -8, 0),
                     Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
                     f"{index + 1}. {clip.path.name}",
                 )
 
-                painter.setPen(QPen(QColor("#0b777b"), 1))
-                painter.setBrush(QBrush(QColor(0, 160, 170, 65)))
+                painter.setPen(QPen(QColor("#9DDCCF"), 1))
+                painter.setBrush(QBrush(QColor("#EAF9F4")))
                 painter.drawRoundedRect(audio_rect, 4, 4)
                 painter.setPen(QColor(MUTED))
                 painter.drawText(
