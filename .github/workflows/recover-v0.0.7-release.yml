@@ -1,4 +1,4 @@
-name: Recover and publish v0.0.7
+name: Publish v0.0.7 cleanly
 
 on:
   push:
@@ -13,23 +13,21 @@ permissions:
   actions: read
 
 jobs:
-  recover-release:
+  publish-release:
     runs-on: windows-latest
     timeout-minutes: 120
     env:
       RELEASE_TAG: v0.0.7
-      RELEASE_ID: '390966870'
       PORTABLE_NAME: MONITOR-DE-NOTICIAS-PYTHON-portable-windows-x64.zip
       VALIDATED_RUN_ID: '34794644131'
       VALIDATED_ARTIFACT: MONITOR-DE-NOTICIAS-PYTHON-portable-windows-x64
-      VALIDATED_ZIP_SHA256: 36e161e4ce27103b6668a4471fe381b03ec28c1b623347f28adf889e7e18845610
       LEGACY_VALIDATED_ZIP_SHA256: 36e161e4ce27103b6668a4471fe381b03ec28c1b6231a9fd137fa2672cfd9ede
       VALIDATED_ZIP_BYTES: '477381768'
       EXPECTED_FFMPEG_SHA256: 91678b935eb52cc740249474574b6042768b744c622347f28a1b487e1ed29915
       EXPECTED_FFPROBE_SHA256: c42ada47df746e3788e2ba3ed2f7af07662a58f9088f9894e1b14d3d5c432263
 
     steps:
-      - name: Checkout recovery commit
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -56,7 +54,7 @@ jobs:
           python -m compileall -q src tests scripts run.py
           python -m pytest -q
 
-      - name: Capture and verify the 11 screens
+      - name: Verify 11 refined screens
         shell: pwsh
         env:
           QT_QPA_PLATFORM: windows
@@ -70,7 +68,7 @@ jobs:
             if(-not (Test-Path $file)){ throw "Captura ausente: $file" }
           }
 
-      - name: Download validated source for audited FFmpeg binaries
+      - name: Download audited FFmpeg source
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VALIDATED_ARTIFACT }}
@@ -88,7 +86,7 @@ jobs:
           $zipHash=(Get-FileHash $zip.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           if($zipHash -ne $env:LEGACY_VALIDATED_ZIP_SHA256){ throw "ZIP validado divergente: $zipHash" }
           if("$($zip.Length)" -ne $env:VALIDATED_ZIP_BYTES){ throw "Tamanho do ZIP validado divergente: $($zip.Length)" }
-          $extract=Join-Path $env:RUNNER_TEMP 'validated-portable-v007-recovery'
+          $extract=Join-Path $env:RUNNER_TEMP 'validated-portable-v007-clean'
           if(Test-Path $extract){ Remove-Item $extract -Recurse -Force }
           Expand-Archive $zip.FullName $extract -Force
           $root=Get-ChildItem $extract -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'MonitorDeNoticias.exe') } | Select-Object -First 1
@@ -99,7 +97,7 @@ jobs:
           $fpHash=(Get-FileHash $fp -Algorithm SHA256).Hash.ToLowerInvariant()
           if($ffHash -ne $env:EXPECTED_FFMPEG_SHA256){ throw "FFmpeg auditado divergente: $ffHash" }
           if($fpHash -ne $env:EXPECTED_FFPROBE_SHA256){ throw "FFprobe auditado divergente: $fpHash" }
-          $audited=Join-Path $env:RUNNER_TEMP 'audited-ffmpeg-v007-recovery'
+          $audited=Join-Path $env:RUNNER_TEMP 'audited-ffmpeg-v007-clean'
           New-Item -ItemType Directory -Force $audited | Out-Null
           Copy-Item $ff (Join-Path $audited 'ffmpeg.exe') -Force
           Copy-Item $fp (Join-Path $audited 'ffprobe.exe') -Force
@@ -109,7 +107,7 @@ jobs:
         shell: pwsh
         run: ./scripts/build_portable.ps1
 
-      - name: Validate freshly built portable
+      - name: Validate portable
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -120,63 +118,31 @@ jobs:
           catch {
             if($_.Exception.Message -notlike '*Seek empacotado fora da tolerância*'){ throw }
             $smokeResult=Join-Path $env:RUNNER_TEMP 'portable-smoke-result.json'
-            if(-not (Test-Path $smokeResult)){ throw 'PORT-005 ocorreu sem resultado de smoke para comprovação.' }
+            if(-not (Test-Path $smokeResult)){ throw 'PORT-005 sem resultado de smoke.' }
             $payload=Get-Content $smokeResult -Raw | ConvertFrom-Json
             if(-not $payload.ok){ throw 'Smoke portable reportou falha.' }
             $positions=@($payload.seek_positions_ms | ForEach-Object { [int]$_ })
             if($positions -notcontains 1000){ throw "Seek real de 1000 ms ausente: $($positions -join ',')" }
             if([int]$payload.player_position_ms -lt 300){ throw 'Preview empacotado não avançou.' }
-            if($payload.video_codec -ne 'h264' -or $payload.audio_codec -ne 'aac'){ throw 'Codecs do smoke portable divergentes.' }
+            if($payload.video_codec -ne 'h264' -or $payload.audio_codec -ne 'aac'){ throw 'Codecs divergentes.' }
             Write-Host "PORT_005_GATE_WORKAROUND_CONFIRMED seek_positions_ms=$($positions -join ',')"
           }
 
-      - name: Recover draft and upload only final assets
+      - name: Create, upload and publish v0.0.7
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference='Stop'
-          $release=gh api "repos/$env:GITHUB_REPOSITORY/releases/$env:RELEASE_ID" | ConvertFrom-Json
-          if($release.tag_name -ne $env:RELEASE_TAG){ throw "Release id não corresponde a $env:RELEASE_TAG" }
-          if(-not $release.draft){ throw 'Release v0.0.7 não está em rascunho; interrompendo recuperação.' }
 
-          # Limpa todos os uploads parciais/duplicados do rascunho anterior.
-          $assets=gh api "repos/$env:GITHUB_REPOSITORY/releases/$env:RELEASE_ID/assets?per_page=100" | ConvertFrom-Json
-          foreach($asset in @($assets)){
-            Write-Host "Removendo asset parcial: $($asset.name) state=$($asset.state)"
-            gh api --method DELETE "repos/$env:GITHUB_REPOSITORY/releases/assets/$($asset.id)"
-            if($LASTEXITCODE -ne 0){ throw "Falha ao remover asset $($asset.name)" }
-          }
+          gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" 2>$null | Out-Null
+          if($LASTEXITCODE -eq 0){ throw "Release $env:RELEASE_TAG já existe; não sobrescrever." }
 
           $zip=(Resolve-Path "portable-out/$env:PORTABLE_NAME").Path
+          $info=(Resolve-Path 'portable/FFMPEG_SOURCE_INFO.txt').Path
           $hash=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
           $bytes=(Get-Item $zip).Length
-          if($bytes -lt 400000000){ throw "ZIP final inesperadamente pequeno: $bytes" }
-
-          $info=(Resolve-Path 'portable/FFMPEG_SOURCE_INFO.txt').Path
-
-          # Upload sequencial: primeiro o ZIP grande, depois apenas o TXT de auditoria.
-          gh api --hostname uploads.github.com --method POST `
-            -H 'Content-Type: application/zip' `
-            "repos/$env:GITHUB_REPOSITORY/releases/$env:RELEASE_ID/assets?name=$env:PORTABLE_NAME" `
-            --input $zip | Out-Null
-          if($LASTEXITCODE -ne 0){ throw 'Falha ao enviar ZIP portable.' }
-
-          gh api --hostname uploads.github.com --method POST `
-            -H 'Content-Type: text/plain' `
-            "repos/$env:GITHUB_REPOSITORY/releases/$env:RELEASE_ID/assets?name=FFMPEG_SOURCE_INFO.txt" `
-            --input $info | Out-Null
-          if($LASTEXITCODE -ne 0){ throw 'Falha ao enviar FFMPEG_SOURCE_INFO.txt.' }
-
-          $finalAssets=gh api "repos/$env:GITHUB_REPOSITORY/releases/$env:RELEASE_ID/assets?per_page=100" | ConvertFrom-Json
-          $names=@($finalAssets | ForEach-Object { $_.name })
-          if($names.Count -ne 2){ throw "Quantidade inesperada de assets: $($names.Count) -> $($names -join ', ')" }
-          if($names -notcontains $env:PORTABLE_NAME){ throw 'ZIP portable ausente após upload.' }
-          if($names -notcontains 'FFMPEG_SOURCE_INFO.txt'){ throw 'FFMPEG_SOURCE_INFO.txt ausente após upload.' }
-          if(@($names | Where-Object { $_ -match '(?i)sha256|\.sha$' }).Count -ne 0){ throw 'Arquivo SHA separado detectado.' }
-          $zipAsset=$finalAssets | Where-Object { $_.name -eq $env:PORTABLE_NAME } | Select-Object -First 1
-          if($zipAsset.state -ne 'uploaded'){ throw "ZIP ainda não está uploaded: $($zipAsset.state)" }
-          if([int64]$zipAsset.size -ne [int64]$bytes){ throw "Tamanho remoto divergente: $($zipAsset.size) != $bytes" }
+          if($bytes -lt 400000000){ throw "ZIP inesperadamente pequeno: $bytes" }
 
           $body=@"
           Monitor de Notícias Python 0.0.7 — Windows Portable x64
@@ -197,20 +163,42 @@ jobs:
           SHA-256 do ZIP: $hash
           Tamanho do ZIP: $bytes bytes
 
-          Assets publicados: um único ZIP portable e FFMPEG_SOURCE_INFO.txt. Nenhum .sha256 separado.
+          Assets: um único ZIP portable e FFMPEG_SOURCE_INFO.txt. Nenhum .sha256 separado.
           "@
 
-          gh api --method PATCH "repos/$env:GITHUB_REPOSITORY/releases/$env:RELEASE_ID" `
-            -f name='Monitor de Notícias Python 0.0.7' `
+          $created = gh api --method POST "repos/$env:GITHUB_REPOSITORY/releases" `
             -f tag_name=$env:RELEASE_TAG `
             -f target_commitish=$env:GITHUB_SHA `
+            -f name='Monitor de Notícias Python 0.0.7' `
             -f body="$body" `
-            -F draft=false `
-            -F prerelease=false | Out-Null
-          if($LASTEXITCODE -ne 0){ throw 'Falha ao publicar rascunho v0.0.7.' }
+            -F draft=true `
+            -F prerelease=false | ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or -not $created.id){ throw 'Falha ao criar draft v0.0.7.' }
+          $releaseId=[string]$created.id
+          Write-Host "DRAFT_CREATED_ID=$releaseId"
 
-          $published=gh api "repos/$env:GITHUB_REPOSITORY/releases/$env:RELEASE_ID" | ConvertFrom-Json
-          if($published.draft){ throw 'Release continuou como draft.' }
-          if(-not $published.published_at){ throw 'Release sem published_at.' }
+          gh api --hostname uploads.github.com --method POST `
+            -H 'Content-Type: application/zip' `
+            "repos/$env:GITHUB_REPOSITORY/releases/$releaseId/assets?name=$env:PORTABLE_NAME" `
+            --input $zip | Out-Null
+          if($LASTEXITCODE -ne 0){ throw 'Falha ao enviar ZIP portable.' }
+
+          gh api --hostname uploads.github.com --method POST `
+            -H 'Content-Type: text/plain' `
+            "repos/$env:GITHUB_REPOSITORY/releases/$releaseId/assets?name=FFMPEG_SOURCE_INFO.txt" `
+            --input $info | Out-Null
+          if($LASTEXITCODE -ne 0){ throw 'Falha ao enviar FFMPEG_SOURCE_INFO.txt.' }
+
+          $assets=gh api "repos/$env:GITHUB_REPOSITORY/releases/$releaseId/assets?per_page=100" | ConvertFrom-Json
+          $names=@($assets | ForEach-Object { $_.name })
+          if($names.Count -ne 2){ throw "Assets inesperados: $($names -join ', ')" }
+          $zipAsset=$assets | Where-Object { $_.name -eq $env:PORTABLE_NAME } | Select-Object -First 1
+          if(-not $zipAsset -or $zipAsset.state -ne 'uploaded'){ throw 'ZIP não ficou uploaded.' }
+          if([int64]$zipAsset.size -ne [int64]$bytes){ throw "Tamanho remoto divergente: $($zipAsset.size) != $bytes" }
+          if($names -notcontains 'FFMPEG_SOURCE_INFO.txt'){ throw 'TXT de auditoria ausente.' }
+          if(@($names | Where-Object { $_ -match '(?i)sha256|\.sha$' }).Count -ne 0){ throw 'Arquivo SHA separado detectado.' }
+
+          $published=gh api --method PATCH "repos/$env:GITHUB_REPOSITORY/releases/$releaseId" -F draft=false -F prerelease=false | ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $published.draft -or -not $published.published_at){ throw 'Falha ao publicar v0.0.7.' }
           Write-Host "RELEASE_PUBLISHED=$($published.html_url)"
           Write-Host "RELEASE_SHA256=$hash"
