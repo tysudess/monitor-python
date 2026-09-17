@@ -29,9 +29,17 @@ class Application:
         qt_app.setApplicationName("Monitor de Notícias")
         container = AppContainer.build(self.paths)
         window = MainWindow(controller=container.controller, paths=self.paths)
-        apply_reference_layout(window)
+
+        def polish() -> None:
+            apply_reference_layout(window)
+
+        polish()
+        if hasattr(window, "stack"):
+            window.stack.currentChanged.connect(lambda _index: QTimer.singleShot(0, polish))
+
         window.show()
-        QTimer.singleShot(0, lambda: apply_reference_layout(window))
+        QTimer.singleShot(0, polish)
+        QTimer.singleShot(120, polish)
         try:
             result = qt_app.exec()
         finally:
