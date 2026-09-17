@@ -9,6 +9,7 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'scripts/**'
       - 'requirements.txt'
       - 'pyproject.toml'
       - '.github/workflows/python-migration-tests.yml'
@@ -45,7 +46,21 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           MONITOR_DISABLE_WEATHER: '1'
         run: python -m pytest -q
+      - name: Capture refined UI screens
+        if: runner.os == 'Windows'
+        env:
+          QT_QPA_PLATFORM: offscreen
+          MONITOR_DISABLE_WEATHER: '1'
+        run: python scripts/capture_refined_layouts.py
+      - name: Upload refined UI screenshots
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: refined-ui-screenshots
+          path: artifacts/refined-ui/*.png
+          if-no-files-found: error
+          retention-days: 14
 
 # Matrix Windows/Ubuntu valida regressão completa e a UI PySide6 em modo offscreen.
-# A branch main agora é validada a cada alteração em src/tests/configuração de build.
+# Windows também gera 11 screenshots reais para revisão visual do layout atual.
 # QtMultimedia exige libpulse0 no runner Linux para carregar QMediaPlayer/QAudioOutput.
