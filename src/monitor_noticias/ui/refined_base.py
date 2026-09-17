@@ -95,12 +95,13 @@ class ToggleSwitch(QPushButton):
 
     def _sync(self, checked: bool) -> None:
         pad = "padding-left:29px;" if checked else "padding-right:29px;"
-        bg = "#087af7" if checked else "#40566d"
-        border = "#25c9ff" if checked else "#93a9bd"
+        bg = "#1482F6" if checked else "#D5E0EE"
+        border = "#1482F6" if checked else "#C3D1E2"
+        dot = "#FFFFFF"
         self.setStyleSheet(
-            f"QPushButton{{background:{bg};color:white;border:1px solid {border};border-radius:15px;"
+            f"QPushButton{{background:{bg};color:{dot};border:1px solid {border};border-radius:15px;"
             f"font-size:19px;min-height:28px;max-height:28px;{pad}}}"
-            "QPushButton:hover{border-color:#79ddff;}"
+            "QPushButton:hover{border-color:#6AABF3;}"
         )
 
 
@@ -127,12 +128,17 @@ class ExecutionPanel(QFrame):
         box = QVBoxLayout(self)
         box.setContentsMargins(16, 12, 16, 12)
         box.setSpacing(7)
+
         top = QHBoxLayout()
         status_icon = QLabel("✓")
         status_icon.setFixedSize(42, 42)
         status_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        status_icon.setStyleSheet("color:#0ff0a1;background:#074f48;border:1px solid #0a9f7c;border-radius:21px;font-size:23px;font-weight:800;")
+        status_icon.setStyleSheet(
+            "color:#069C6B;background:#E7F8F1;border:1px solid #B7E7D4;"
+            "border-radius:21px;font-size:23px;font-weight:800;"
+        )
         top.addWidget(status_icon)
+
         titles = QVBoxLayout()
         titles.setSpacing(0)
         self.title = QLabel()
@@ -142,13 +148,29 @@ class ExecutionPanel(QFrame):
         titles.addWidget(self.title)
         titles.addWidget(self.status)
         top.addLayout(titles, 1)
+
         self.metric_labels: dict[str, QLabel] = {}
-        for key, caption in (("pct", "conclusão"), ("found", "encontrados"), ("fresh", "novos"), ("errors", "falhas"), ("steps", "etapas"), ("time", "tempo")):
+        metric_colors = {
+            "pct": "#0BAA73",
+            "found": "#E09500",
+            "fresh": "#7A3FEA",
+            "errors": "#E33B52",
+            "steps": "#087AF7",
+            "time": "#087AF7",
+        }
+        for key, caption in (
+            ("pct", "conclusão"),
+            ("found", "encontrados"),
+            ("fresh", "novos"),
+            ("errors", "falhas"),
+            ("steps", "etapas"),
+            ("time", "tempo"),
+        ):
             col = QVBoxLayout()
             col.setSpacing(0)
             value = QLabel("0")
             value.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            value.setStyleSheet("color:#1caaff;font-size:15px;font-weight:800;")
+            value.setStyleSheet(f"color:{metric_colors[key]};font-size:15px;font-weight:800;")
             cap = QLabel(caption)
             cap.setObjectName("smallText")
             cap.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -156,14 +178,19 @@ class ExecutionPanel(QFrame):
             col.addWidget(cap)
             top.addLayout(col)
             self.metric_labels[key] = value
+
         box.addLayout(top)
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
         self.progress.setTextVisible(False)
         box.addWidget(self.progress)
+
         self.detail = QLabel()
         self.detail.setObjectName("greenText")
-        self.detail.setStyleSheet("color:#18dca0;background:#073d45;border:1px solid #0a8b74;border-radius:7px;padding:7px 10px;")
+        self.detail.setStyleSheet(
+            "color:#087B57;background:#EEFAF5;border:1px solid #B8E7D5;"
+            "border-radius:7px;padding:7px 10px;"
+        )
         box.addWidget(self.detail)
 
     def set_state(self, busy: bool, progress, status: str, fresh: int, elapsed: int) -> None:
