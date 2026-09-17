@@ -25,6 +25,7 @@ class Application:
         from monitor_noticias.ui.density_tuning import apply_density_tuning
         from monitor_noticias.ui.layout_refresh import apply_reference_layout
         from monitor_noticias.ui.main_window import MainWindow
+        from monitor_noticias.ui.pdf_visual_patch import apply_pdf_visual_patch
 
         qt_app = QApplication.instance() or QApplication(sys.argv)
         qt_app.setApplicationName("Monitor de Notícias")
@@ -38,6 +39,7 @@ class Application:
             polish_pending = False
             apply_reference_layout(window)
             apply_density_tuning(window)
+            apply_pdf_visual_patch(window)
 
         def schedule_polish(*_args) -> None:
             nonlocal polish_pending
