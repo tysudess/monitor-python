@@ -32,6 +32,58 @@ QLabel#summaryOrange { color:#E89400; }
 """
 
 
+def _polish_shell(window: QWidget) -> None:
+    """Ajusta proporções da casca principal sem alterar navegação ou lógica."""
+    sidebar = getattr(window, "sidebar", None)
+    if sidebar is not None:
+        sidebar.setFixedWidth(236)
+        layout = sidebar.layout()
+        if layout is not None:
+            layout.setContentsMargins(12, 11, 12, 9)
+            layout.setSpacing(3)
+
+    nav_buttons = getattr(window, "nav_buttons", {})
+    if isinstance(nav_buttons, dict):
+        for button in nav_buttons.values():
+            button.setMinimumHeight(39)
+            button.setMaximumHeight(42)
+
+    status_card = getattr(window, "side_status_card", None)
+    if status_card is not None:
+        status_card.setMinimumHeight(136)
+        status_card.setMaximumHeight(150)
+
+    for child in window.findChildren(QWidget):
+        if child.__class__.__name__ == "SidebarShipArt":
+            child.setMinimumHeight(54)
+            child.setMaximumHeight(62)
+
+    header = getattr(window, "header_widget", None)
+    if header is not None:
+        header.setMinimumHeight(82)
+        header.setMaximumHeight(90)
+
+    footer = getattr(window, "footer_widget", None)
+    if footer is not None:
+        footer.setFixedHeight(34)
+
+    content_layout = getattr(window, "content_layout", None)
+    if content_layout is not None:
+        if header is not None and header.isVisible():
+            content_layout.setContentsMargins(14, 4, 14, 0)
+            content_layout.setSpacing(8)
+        else:
+            content_layout.setContentsMargins(0, 0, 0, 0)
+            content_layout.setSpacing(0)
+
+    pages = getattr(window, "pages", {})
+    if isinstance(pages, dict):
+        for page in pages.values():
+            root = getattr(page, "root", None)
+            if root is not None:
+                root.setSpacing(10)
+
+
 def _polish_home(window: QWidget) -> None:
     home = window.findChild(QWidget, "homeDashboard")
     if home is None:
@@ -152,9 +204,10 @@ def _polish_search_pages(page: QWidget) -> None:
 def _polish_sources(page: QWidget) -> None:
     source_list = getattr(page, "list", None)
     if isinstance(source_list, QListWidget):
+        source_list.setSpacing(2)
         source_list.setStyleSheet(
             "QListWidget{background:transparent;border:0;padding:2px;}"
-            "QListWidget::item{background:#FFFFFF;border:1px solid #DCE8F5;border-radius:10px;margin:3px 0;padding:0;}"
+            "QListWidget::item{background:#FFFFFF;border:1px solid #DCE8F5;border-radius:10px;margin:2px 0;padding:0;}"
             "QListWidget::item:selected{background:#F3F8FF;border:1px solid #AFCDED;}"
         )
     for label in page.findChildren(QLabel):
@@ -209,11 +262,13 @@ def _polish_terms(page: QWidget) -> None:
 def _polish_history(page: QWidget) -> None:
     for button in page.findChildren(QPushButton):
         if button.text().strip() in {"Notícias", "Vídeos"}:
-            button.setMinimumHeight(38)
+            button.setMinimumHeight(36)
+            button.setMaximumHeight(38)
 
 
 def apply_reference_layout(window: QWidget) -> None:
     """Aplica o acabamento visual de referência sem alterar lógica de negócio."""
+    _polish_shell(window)
     _polish_home(window)
     pages = getattr(window, "pages", {})
     for page in pages.values() if isinstance(pages, dict) else []:
