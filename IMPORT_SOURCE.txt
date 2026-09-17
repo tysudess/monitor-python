@@ -1,0 +1,2 @@
+Source: tysudess/MONITOR-DE-NOTICAS-PYTHON tag v0.0.6
+Commit: effbff1bae3eedd64a9970aae89d45bee1d49724
