@@ -22,6 +22,7 @@ class Application:
         from PySide6.QtCore import QTimer
         from PySide6.QtWidgets import QApplication
         from monitor_noticias.app.composition import AppContainer
+        from monitor_noticias.ui.density_tuning import apply_density_tuning
         from monitor_noticias.ui.layout_refresh import apply_reference_layout
         from monitor_noticias.ui.main_window import MainWindow
 
@@ -36,6 +37,7 @@ class Application:
             nonlocal polish_pending
             polish_pending = False
             apply_reference_layout(window)
+            apply_density_tuning(window)
 
         def schedule_polish(*_args) -> None:
             nonlocal polish_pending
