@@ -46,8 +46,7 @@ log = logging.getLogger(__name__)
 SIDEBAR_STYLESHEET = """
 QFrame#sidebar {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:1, stop:0 #052e50, stop:0.58 #042642, stop:1 #031a30);
-    border: 1px solid #087eae;
-    border-radius: 14px;
+    border:1px solid #087eae; border-radius:14px;
 }
 QLabel#brandTitle { color:#ffffff; font-size:17px; font-weight:800; }
 QLabel#brandSub { color:#a8c3db; font-size:10px; }
@@ -65,23 +64,63 @@ QLabel#newsBadge { color:#062440; background:#ffc21a; border-radius:10px; paddin
 QFrame#sideStatusCard { background:#052b48; border:1px solid #0a638d; border-radius:10px; }
 QLabel#sideStatusTitle { color:#ffffff; font-size:10px; font-weight:800; }
 QLabel#sideStatusText, QLabel#sideStatusGood { color:#a9c6df; font-size:9px; }
+QFrame#sideDivider { background:#0a4568; border:0; }
 QLabel#sideMotto { color:#54bff2; font-size:8px; font-weight:700; letter-spacing:1px; }
+"""
+
+
+NEWS_SIDEBAR_STYLESHEET = """
+QFrame#sidebar {
+    background:#FFFFFF; border:1px solid #D8E6F5; border-radius:14px;
+}
+QLabel#brandTitle { color:#0B2860; font-size:17px; font-weight:800; }
+QLabel#brandSub { color:#7085A8; font-size:10px; }
+QLabel#anchorMark { color:#F0B400; font-family:'Segoe UI Symbol'; font-size:46px; font-weight:700; }
+QPushButton#navButton {
+    color:#17386C; background:transparent; border:0; border-radius:9px;
+    padding:9px 12px; text-align:left; font-size:13px; font-weight:600;
+}
+QPushButton#navButton:hover { background:#F0F6FD; }
+QPushButton#navButton:checked {
+    background:#EAF4FF; border:1px solid #8ABEF2; color:#087AF7; font-weight:800;
+}
+QLabel#newsBadge { color:#6D4B00; background:#FFE28A; border-radius:10px; padding:2px 7px; font-size:9px; font-weight:800; }
+QFrame#sideStatusCard { background:#F7FBFF; border:1px solid #D5E5F5; border-radius:10px; }
+QLabel#sideStatusTitle { color:#0B2860; font-size:10px; font-weight:800; }
+QLabel#sideStatusText { color:#6B81A5; font-size:9px; }
+QLabel#sideStatusGood { color:#087B57; font-size:9px; }
+QFrame#sideDivider { background:#D9E7F5; border:0; }
+QLabel#sideMotto { color:#147BF3; font-size:8px; font-weight:700; letter-spacing:1px; }
 """
 
 
 class SidebarShipArt(QWidget):
     def __init__(self) -> None:
         super().__init__()
+        self._light = False
         self.setMinimumHeight(72)
         self.setMaximumHeight(82)
+
+    def set_light(self, light: bool) -> None:
+        if self._light != light:
+            self._light = light
+            self.update()
 
     def paintEvent(self, event) -> None:
         super().paintEvent(event)
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         w, h = self.width(), self.height()
+        if self._light:
+            hull_color = QColor(22, 108, 170, 155)
+            line_color = QColor(22, 108, 170, 175)
+            water_color = QColor(22, 108, 170, 60)
+        else:
+            hull_color = QColor(0, 70, 110, 190)
+            line_color = QColor(0, 86, 128, 190)
+            water_color = QColor(0, 112, 156, 85)
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(0, 70, 110, 190))
+        p.setBrush(hull_color)
         hull = QPolygonF([
             QPointF(w * .08, h * .67), QPointF(w * .86, h * .67),
             QPointF(w * .76, h * .83), QPointF(w * .20, h * .83),
@@ -90,10 +129,10 @@ class SidebarShipArt(QWidget):
         p.drawRect(QRectF(w * .35, h * .47, w * .34, h * .20))
         p.drawRect(QRectF(w * .47, h * .31, w * .14, h * .18))
         p.drawRect(QRectF(w * .52, h * .18, w * .02, h * .16))
-        p.setPen(QPen(QColor(0, 86, 128, 190), 2))
+        p.setPen(QPen(line_color, 2))
         p.drawLine(QPointF(w * .53, h * .20), QPointF(w * .67, h * .42))
         p.drawLine(QPointF(w * .53, h * .20), QPointF(w * .40, h * .42))
-        p.setPen(QPen(QColor(0, 112, 156, 85), 1))
+        p.setPen(QPen(water_color, 1))
         p.drawLine(QPointF(w * .05, h * .88), QPointF(w * .93, h * .88))
         p.drawLine(QPointF(w * .18, h * .94), QPointF(w * .82, h * .94))
 
@@ -110,6 +149,7 @@ class MainWindow(QMainWindow):
         )
         self._allow_close = False
         self._current = Section.HOME
+        self._news_sidebar_light = False
         self.setWindowTitle("Monitor de Notícias - Windows Portable v4.0.2")
         self.resize(1600, 960)
 
@@ -134,11 +174,13 @@ class MainWindow(QMainWindow):
         root = QWidget(); root.setObjectName("root"); self.setCentralWidget(root)
         outer = QHBoxLayout(root); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(0)
 
-        self.sidebar = QFrame(); self.sidebar.setObjectName("sidebar"); self.sidebar.setStyleSheet(SIDEBAR_STYLESHEET); self.sidebar.setFixedWidth(255)
+        self.sidebar = QFrame(); self.sidebar.setObjectName("sidebar")
+        self.sidebar.setStyleSheet(SIDEBAR_STYLESHEET); self.sidebar.setFixedWidth(255)
         side = QVBoxLayout(self.sidebar); side.setContentsMargins(14, 13, 14, 10); side.setSpacing(4)
 
         brand_row = QHBoxLayout(); brand_row.setSpacing(8)
-        anchor = QLabel("⚓︎"); anchor.setObjectName("anchorMark"); anchor.setFixedWidth(58); anchor.setAlignment(Qt.AlignmentFlag.AlignCenter); brand_row.addWidget(anchor)
+        anchor = QLabel("⚓︎"); anchor.setObjectName("anchorMark"); anchor.setFixedWidth(58)
+        anchor.setAlignment(Qt.AlignmentFlag.AlignCenter); brand_row.addWidget(anchor)
         brand_text = QVBoxLayout(); brand_text.setSpacing(0)
         brand = QLabel("MONITOR\nDE NOTÍCIAS"); brand.setObjectName("brandTitle"); brand_text.addWidget(brand)
         sub = QLabel("Inteligência de mídia"); sub.setObjectName("brandSub"); brand_text.addWidget(sub)
@@ -146,25 +188,34 @@ class MainWindow(QMainWindow):
 
         self.nav_buttons: dict[Section, QPushButton] = {}
         self.nav_holders: dict[Section, QWidget] = {}
-        self.news_badge = QLabel("0"); self.news_badge.setObjectName("newsBadge"); self.news_badge.setAlignment(Qt.AlignmentFlag.AlignCenter); self.news_badge.setMinimumWidth(34)
+        self.news_badge = QLabel("0"); self.news_badge.setObjectName("newsBadge")
+        self.news_badge.setAlignment(Qt.AlignmentFlag.AlignCenter); self.news_badge.setMinimumWidth(34)
         for section in SECTION_ORDER:
             holder = QWidget(); holder.setStyleSheet("background:transparent;")
             row = QHBoxLayout(holder); row.setContentsMargins(0,0,0,0); row.setSpacing(4)
-            button = QPushButton(f"{section.value.icon}   {section.value.label}"); button.setObjectName("navButton"); button.setCheckable(True); button.setMinimumHeight(44); button.clicked.connect(lambda _=False,s=section:self.navigate(s)); row.addWidget(button,1)
-            if section == Section.NEWS: row.addWidget(self.news_badge,0,Qt.AlignmentFlag.AlignVCenter)
+            button = QPushButton(f"{section.value.icon}   {section.value.label}")
+            button.setObjectName("navButton"); button.setCheckable(True); button.setMinimumHeight(44)
+            button.clicked.connect(lambda _=False,s=section:self.navigate(s)); row.addWidget(button,1)
+            if section == Section.NEWS:
+                row.addWidget(self.news_badge,0,Qt.AlignmentFlag.AlignVCenter)
             self.nav_buttons[section]=button; self.nav_holders[section]=holder; side.addWidget(holder)
         side.addSpacing(8)
 
-        self.side_status_card = QFrame(); self.side_status_card.setObjectName("sideStatusCard"); self.side_status_card.setMinimumHeight(164)
+        self.side_status_card = QFrame(); self.side_status_card.setObjectName("sideStatusCard")
+        self.side_status_card.setMinimumHeight(164)
         status_lay = QVBoxLayout(self.side_status_card); status_lay.setContentsMargins(14,10,14,10); status_lay.setSpacing(6)
         self.side_status_title = QLabel("●   Sistema operacional"); self.side_status_title.setObjectName("sideStatusTitle"); status_lay.addWidget(self.side_status_title)
         local = QLabel("Dados locais · modo portátil"); local.setObjectName("sideStatusText"); status_lay.addWidget(local)
         self.side_proxy=QLabel(); self.side_proxy.setObjectName("sideStatusGood"); status_lay.addWidget(self.side_proxy)
         self.side_automation=QLabel(); self.side_automation.setObjectName("sideStatusGood"); status_lay.addWidget(self.side_automation)
-        divider=QFrame(); divider.setFixedHeight(1); divider.setStyleSheet("background:#0a4568;border:0;"); status_lay.addWidget(divider)
-        ver=QLabel("Windows Portable v4.0.2"); ver.setObjectName("sideStatusText"); status_lay.addWidget(ver); side.addWidget(self.side_status_card)
-        ship=SidebarShipArt(); side.addWidget(ship)
-        motto_row=QHBoxLayout(); gold=QLabel("━━"); gold.setStyleSheet("color:#ffc21a;font-weight:800;"); motto_row.addWidget(gold); motto=QLabel("INFORMAÇÃO\nEM DEFESA DO BRASIL"); motto.setObjectName("sideMotto"); motto_row.addWidget(motto,1); side.addLayout(motto_row); side.addStretch(1)
+        self.side_divider=QFrame(); self.side_divider.setObjectName("sideDivider"); self.side_divider.setFixedHeight(1); status_lay.addWidget(self.side_divider)
+        ver=QLabel("Windows Portable v4.0.2"); ver.setObjectName("sideStatusText"); status_lay.addWidget(ver)
+        side.addWidget(self.side_status_card)
+        self.sidebar_ship=SidebarShipArt(); side.addWidget(self.sidebar_ship)
+        motto_row=QHBoxLayout(); self.sidebar_gold=QLabel("━━")
+        self.sidebar_gold.setStyleSheet("color:#ffc21a;font-weight:800;"); motto_row.addWidget(self.sidebar_gold)
+        motto=QLabel("INFORMAÇÃO\nEM DEFESA DO BRASIL"); motto.setObjectName("sideMotto"); motto_row.addWidget(motto,1)
+        side.addLayout(motto_row); side.addStretch(1)
         outer.addWidget(self.sidebar)
 
         content = QWidget(); content.setObjectName("mainContent")
@@ -185,40 +236,82 @@ class MainWindow(QMainWindow):
             Section.EXTRACTOR: RefinedExtractorPage(self.paths.root),
             Section.VIDEO_EDITOR: VideoEditorPage(self.paths.root),
         }
-        for section in SECTION_ORDER: self.stack.addWidget(self.pages[section])
+        for section in SECTION_ORDER:
+            self.stack.addWidget(self.pages[section])
+
         home=self.pages[Section.HOME]
-        if isinstance(home,HomeDashboard): home.navigate.connect(lambda name:self.navigate(Section[name]))
+        if isinstance(home,HomeDashboard):
+            home.navigate.connect(lambda name:self.navigate(Section[name]))
         pdf_page=self.pages[Section.PDF_EDITOR]
-        if isinstance(pdf_page,RefinedPdfEditorPage): pdf_page.back_requested.connect(lambda:self.navigate(Section.HOME))
+        if isinstance(pdf_page,RefinedPdfEditorPage):
+            pdf_page.back_requested.connect(lambda:self.navigate(Section.HOME))
         video_page=self.pages[Section.VIDEO_EDITOR]
-        if isinstance(video_page,VideoEditorPage): video_page.back_requested.connect(lambda:self.navigate(Section.HOME))
+        if isinstance(video_page,VideoEditorPage):
+            video_page.back_requested.connect(lambda:self.navigate(Section.HOME))
+
+        news_page=self.pages[Section.NEWS]
+        if isinstance(news_page, NewsPage):
+            self.header_widget.search_box.textChanged.connect(self._header_news_search_changed)
+            news_page.query.textChanged.connect(self._page_news_search_changed)
+
         self.footer_widget=TechFooter(); self.content_layout.addWidget(self.footer_widget)
         outer.addWidget(content,1)
 
     def _build_tray(self) -> None:
         icon=self.windowIcon()
-        if icon.isNull(): icon=self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
+        if icon.isNull():
+            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
         self.tray=QSystemTrayIcon(icon,self); self.tray.setToolTip("Monitor de Notícias")
         menu=QMenu(); open_action=menu.addAction("Abrir"); open_action.triggered.connect(self._restore); menu.addSeparator()
         news=menu.addAction("Buscar notícias agora"); news.triggered.connect(self.controller.search_news)
         videos=menu.addAction("Buscar vídeos agora"); videos.triggered.connect(self.controller.search_videos)
         demands=menu.addAction("Buscar demandas agora"); demands.triggered.connect(self.controller.search_all_demands)
         stop=menu.addAction("Parar buscas"); stop.triggered.connect(self.controller.stop_all_searches); menu.addSeparator()
-        tools=menu.addMenu("Ferramentas"); pdf=tools.addAction("Editor de PDF"); pdf.triggered.connect(lambda:self.navigate(Section.PDF_EDITOR)); extractor=tools.addAction("Extrator de Vídeos"); extractor.triggered.connect(lambda:self.navigate(Section.EXTRACTOR)); video_editor=tools.addAction("Editor de Vídeo"); video_editor.triggered.connect(lambda:self.navigate(Section.VIDEO_EDITOR)); menu.addSeparator(); exit_action=menu.addAction("Sair"); exit_action.triggered.connect(self.exit_application)
-        self.tray.setContextMenu(menu); self.tray.activated.connect(lambda reason:self._restore() if reason==QSystemTrayIcon.ActivationReason.Trigger else None)
-        if QSystemTrayIcon.isSystemTrayAvailable(): self.tray.show()
+        tools=menu.addMenu("Ferramentas")
+        pdf=tools.addAction("Editor de PDF"); pdf.triggered.connect(lambda:self.navigate(Section.PDF_EDITOR))
+        extractor=tools.addAction("Extrator de Vídeos"); extractor.triggered.connect(lambda:self.navigate(Section.EXTRACTOR))
+        video_editor=tools.addAction("Editor de Vídeo"); video_editor.triggered.connect(lambda:self.navigate(Section.VIDEO_EDITOR))
+        menu.addSeparator(); exit_action=menu.addAction("Sair"); exit_action.triggered.connect(self.exit_application)
+        self.tray.setContextMenu(menu)
+        self.tray.activated.connect(lambda reason:self._restore() if reason==QSystemTrayIcon.ActivationReason.Trigger else None)
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            self.tray.show()
         self.notifier=WindowsTrayNotifier(self.tray)
+
+    def _header_news_search_changed(self, text: str) -> None:
+        page = self.pages.get(Section.NEWS)
+        if isinstance(page, NewsPage) and page.query.text() != text:
+            page.query.setText(text)
+
+    def _page_news_search_changed(self, text: str) -> None:
+        if self.header_widget.search_box.text() != text:
+            self.header_widget.search_box.setText(text)
+
+    def _apply_sidebar_variant(self, section: Section) -> None:
+        light = section == Section.NEWS
+        self._news_sidebar_light = light
+        self.sidebar.setStyleSheet(NEWS_SIDEBAR_STYLESHEET if light else SIDEBAR_STYLESHEET)
+        self.sidebar_ship.set_light(light)
+        self.sidebar_gold.setStyleSheet(
+            "color:#E2A900;font-weight:800;" if light else "color:#ffc21a;font-weight:800;"
+        )
 
     def navigate(self, section: Section) -> None:
         keep_maximized = self.isMaximized() or bool(
             self.windowState() & Qt.WindowState.WindowMaximized
         )
         self._current=section; self.stack.setCurrentIndex(SECTION_ORDER.index(section))
-        for sec,button in self.nav_buttons.items(): button.setChecked(sec==section)
-        on_home=section==Section.HOME; self.header_widget.setVisible(not on_home); self.footer_widget.setVisible(not on_home)
-        if on_home: self.content_layout.setContentsMargins(0,0,0,0); self.content_layout.setSpacing(0)
-        else: self.content_layout.setContentsMargins(18,8,18,0); self.content_layout.setSpacing(10)
-        for tool in TOOL_SECTIONS: self.nav_holders[tool].setVisible(not on_home)
+        for sec,button in self.nav_buttons.items():
+            button.setChecked(sec==section)
+        self._apply_sidebar_variant(section)
+        on_home=section==Section.HOME
+        self.header_widget.setVisible(not on_home); self.footer_widget.setVisible(not on_home)
+        if on_home:
+            self.content_layout.setContentsMargins(0,0,0,0); self.content_layout.setSpacing(0)
+        else:
+            self.content_layout.setContentsMargins(18,8,18,0); self.content_layout.setSpacing(10)
+        for tool in TOOL_SECTIONS:
+            self.nav_holders[tool].setVisible(not on_home)
         self.header_widget.set_section(section.value.label,section.value.subtitle)
         self.pages[section].refresh(self.controller.state)
         if keep_maximized:
@@ -231,24 +324,44 @@ class MainWindow(QMainWindow):
     def _tick(self) -> None:
         self.controller.sync_automation_state(); self.pages[self._current].refresh(self.controller.state)
         state=self.controller.state; cfg=self.controller.proxy_config; auto=self.controller.automation_settings
-        if self._current != Section.HOME: self.header_widget.update_runtime(self.controller)
+        if self._current != Section.HOME:
+            self.header_widget.update_runtime(self.controller)
         new_count=len(state.new_news_links); self.news_badge.setText(str(new_count)); self.news_badge.setVisible(new_count>0)
         busy=state.news_busy or state.video_busy
-        self.side_status_title.setText("●   Busca em andamento" if busy else "●   Sistema operacional"); self.side_status_title.setStyleSheet("color:#ffffff;")
-        self.side_proxy.setText(f"●   {cfg.status_label}"); self.side_proxy.setStyleSheet("color:#54e69d;" if "desativ" in cfg.status_label.lower() or "ok" in cfg.status_label.lower() else "color:#ffc21a;")
-        self.side_automation.setText(f"●   Automação {'ativa' if auto.automatic_monitoring else 'pausada'}"); self.side_automation.setStyleSheet("color:#54e69d;" if auto.automatic_monitoring else "color:#ffc21a;")
+        self.side_status_title.setText("●   Busca em andamento" if busy else "●   Sistema operacional")
+        good_proxy = "desativ" in cfg.status_label.lower() or "ok" in cfg.status_label.lower() or "pronto" in cfg.status_label.lower()
+        if self._news_sidebar_light:
+            self.side_status_title.setStyleSheet("color:#0B2860;")
+            self.side_proxy.setText(f"●   {cfg.status_label}")
+            self.side_proxy.setStyleSheet("color:#087B57;" if good_proxy else "color:#A56A00;")
+            self.side_automation.setText(f"●   Automação {'ativa' if auto.automatic_monitoring else 'pausada'}")
+            self.side_automation.setStyleSheet("color:#087B57;" if auto.automatic_monitoring else "color:#A56A00;")
+        else:
+            self.side_status_title.setStyleSheet("color:#ffffff;")
+            self.side_proxy.setText(f"●   {cfg.status_label}")
+            self.side_proxy.setStyleSheet("color:#54e69d;" if good_proxy else "color:#ffc21a;")
+            self.side_automation.setText(f"●   Automação {'ativa' if auto.automatic_monitoring else 'pausada'}")
+            self.side_automation.setStyleSheet("color:#54e69d;" if auto.automatic_monitoring else "color:#ffc21a;")
         self.footer_widget.set_busy(busy)
 
-    def _state_changed(self, _state) -> None: pass
-    def _restore(self) -> None: self.show(); self.raise_(); self.activateWindow()
+    def _state_changed(self, _state) -> None:
+        pass
+
+    def _restore(self) -> None:
+        self.show(); self.raise_(); self.activateWindow()
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        if self._allow_close: event.accept(); return
+        if self._allow_close:
+            event.accept(); return
         event.ignore(); self.hide()
 
     def exit_application(self) -> None:
         extractor=self.pages.get(Section.EXTRACTOR)
-        if isinstance(extractor,RefinedExtractorPage) and not extractor.shutdown(): self.footer_widget.status.setText("Aguardando o Extrator encerrar a operação ativa antes de sair."); self._restore(); return
+        if isinstance(extractor,RefinedExtractorPage) and not extractor.shutdown():
+            self.footer_widget.status.setText("Aguardando o Extrator encerrar a operação ativa antes de sair.")
+            self._restore(); return
         video_editor=self.pages.get(Section.VIDEO_EDITOR)
-        if isinstance(video_editor,VideoEditorPage) and not video_editor.shutdown(): self.footer_widget.status.setText("Não foi possível fechar todas as janelas do Editor de Vídeo."); self._restore(); return
+        if isinstance(video_editor,VideoEditorPage) and not video_editor.shutdown():
+            self.footer_widget.status.setText("Não foi possível fechar todas as janelas do Editor de Vídeo.")
+            self._restore(); return
         self._allow_close=True; self._timer.stop(); self.controller.close(); self.tray.hide(); self.close()
