@@ -30,12 +30,25 @@ class Application:
         container = AppContainer.build(self.paths)
         window = MainWindow(controller=container.controller, paths=self.paths)
 
+        polish_pending = False
+
         def polish() -> None:
+            nonlocal polish_pending
+            polish_pending = False
             apply_reference_layout(window)
+
+        def schedule_polish(*_args) -> None:
+            nonlocal polish_pending
+            if polish_pending:
+                return
+            polish_pending = True
+            QTimer.singleShot(0, polish)
 
         polish()
         if hasattr(window, "stack"):
-            window.stack.currentChanged.connect(lambda _index: QTimer.singleShot(0, polish))
+            window.stack.currentChanged.connect(lambda _index: schedule_polish())
+        if hasattr(container.controller, "subscribe"):
+            container.controller.subscribe(lambda _state: schedule_polish())
 
         window.show()
         QTimer.singleShot(0, polish)
