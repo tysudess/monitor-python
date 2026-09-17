@@ -19,6 +19,7 @@ class Application:
         log = logging.getLogger("monitor_noticias.application")
         log.info("Inicializando Monitor de Notícias PySide6")
 
+        from PySide6.QtCore import QTimer
         from PySide6.QtWidgets import QApplication
         from monitor_noticias.app.composition import AppContainer
         from monitor_noticias.ui.layout_refresh import apply_reference_layout
@@ -30,6 +31,7 @@ class Application:
         window = MainWindow(controller=container.controller, paths=self.paths)
         apply_reference_layout(window)
         window.show()
+        QTimer.singleShot(0, lambda: apply_reference_layout(window))
         try:
             result = qt_app.exec()
         finally:
