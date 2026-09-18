@@ -3,7 +3,16 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractItemView, QFrame, QHBoxLayout, QLabel, QPushButton, QTableWidget, QVBoxLayout, QWidget
 
-from monitor_noticias.ui.refined_base import copy_text, format_time, open_url, open_whatsapp, secondary
+from monitor_noticias.ui.refined_base import (
+    copy_text,
+    copy_news_url,
+    format_time,
+    open_news_url,
+    open_news_whatsapp,
+    open_url,
+    open_whatsapp,
+    secondary,
+)
 
 
 class CardList(QTableWidget):
@@ -85,9 +94,12 @@ class NewsCard(QFrame):
         row.addLayout(text, 1)
 
         actions = QHBoxLayout(); actions.setSpacing(6 if reference_style else 8)
-        open_btn = secondary(QPushButton("↗  Abrir matéria")); open_btn.clicked.connect(lambda: open_url(item.link))
-        whats = QPushButton("◉  WhatsApp"); whats.setProperty("green", True); whats.clicked.connect(lambda: open_whatsapp(item.title, item.link))
-        copy = secondary(QPushButton("▣  Copiar link")); copy.clicked.connect(lambda: copy_text(item.link))
+        open_btn = secondary(QPushButton("↗  Abrir matéria"))
+        open_btn.clicked.connect(lambda: open_news_url(item.link, item.title, item.source))
+        whats = QPushButton("◉  WhatsApp"); whats.setProperty("green", True)
+        whats.clicked.connect(lambda: open_news_whatsapp(item.title, item.link, item.source))
+        copy = secondary(QPushButton("▣  Copiar link"))
+        copy.clicked.connect(lambda: copy_news_url(item.link, item.title, item.source))
         buttons = [open_btn, whats, copy]
         if reference_style:
             extract = QPushButton("⇩  Extrair matéria")
