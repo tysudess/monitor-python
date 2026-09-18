@@ -1,4 +1,4 @@
-name: Release v0.0.9 - Noticias UI
+name: Release v0.0.9 - Links, Fontes, Configuracoes, Termos e Historico
 
 on:
   workflow_dispatch:
@@ -6,14 +6,14 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/release-v0.0.9-noticias-ui.yml'
+      - '.github/workflows/release-v0.0.9-ui-fixes.yml'
 
 permissions:
   contents: write
   actions: read
 
 concurrency:
-  group: release-v0.0.9-noticias-ui
+  group: release-v0.0.9-ui-fixes
   cancel-in-progress: false
 
 env:
@@ -226,7 +226,7 @@ jobs:
           }
           if(-not $existing){
             $body=@"
-          Monitor de Noticias Python 0.0.8 - Windows Portable x64
+          Monitor de Noticias Python 0.0.9 - Windows Portable x64
 
           Ajustes desta versao:
           - links da aba Noticias resolvidos para a URL final do veiculo
@@ -248,7 +248,7 @@ jobs:
             gh release create $env:RELEASE_TAG `
               --repo $env:GITHUB_REPOSITORY `
               --target $env:GITHUB_SHA `
-              --title 'Monitor de Notícias Python 0.0.8' `
+              --title 'Monitor de Notícias Python 0.0.9' `
               --notes $body `
               --draft
             if($LASTEXITCODE -ne 0){ throw 'Falha ao criar draft v0.0.9.' }
@@ -304,11 +304,11 @@ jobs:
           if($LASTEXITCODE -ne 0){ throw 'Falha ao publicar a release apos o upload.' }
           Write-Host "RELEASE_PUBLISHED=$env:RELEASE_TAG"
 
-      - name: Upload Noticias screenshot for workflow diagnostics
+      - name: Upload requested UI screenshots for workflow diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v0.0.9-noticias-screenshot
+          name: v0.0.9-ui-screenshots
           path: |
             artifacts/refined-ui/noticias-1721x914.png
             artifacts/refined-ui/fontes-1721x914.png
