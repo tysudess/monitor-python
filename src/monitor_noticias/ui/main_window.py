@@ -288,7 +288,13 @@ class MainWindow(QMainWindow):
             self.header_widget.search_box.setText(text)
 
     def _apply_sidebar_variant(self, section: Section) -> None:
-        light = section == Section.NEWS
+        light = section in {
+            Section.NEWS,
+            Section.SOURCES,
+            Section.HISTORY,
+            Section.TERMS,
+            Section.SETTINGS,
+        }
         self._news_sidebar_light = light
         self.sidebar.setStyleSheet(NEWS_SIDEBAR_STYLESHEET if light else SIDEBAR_STYLESHEET)
         self.sidebar_ship.set_light(light)
