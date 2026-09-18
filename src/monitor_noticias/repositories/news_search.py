@@ -7,6 +7,7 @@ from monitor_noticias.automation.models import LiveSearchProgress
 from monitor_noticias.collectors.news.latest import ROUTES
 from monitor_noticias.matching import demand_vehicle_matches, merge_news, source_matches_strict, story_key, subject_matches
 from monitor_noticias.models import News
+from monitor_noticias.networking.google_news_resolver import is_safe_news_link
 from .news_types import NewsSearchResult
 
 DIRECT_SCAN_MAX_WINDOW_MS = 48 * 60 * 60 * 1000
@@ -33,7 +34,10 @@ def perform_news_search(repo, from_ms, to_ms, selected_sources, search_all_sourc
     by_link = {item.link:item for item in history}; by_story = {story_key(item):item for item in history}
     def historical(incoming: News) -> News:
         previous = by_link.get(incoming.link) or by_story.get(story_key(incoming))
-        return incoming if previous is None else merge_news(previous, replace(incoming, link=previous.link, capturedAt=previous.capturedAt))
+        if previous is None:
+            return incoming
+        preserved_link = previous.link if is_safe_news_link(previous.link) else incoming.link
+        return merge_news(previous, replace(incoming, link=preserved_link, capturedAt=previous.capturedAt))
 
     collected: dict[str,News] = {}; new_links: list[str] = []
     errors = 0; completed = 0; total = len(tasks) + len(direct_sources)
