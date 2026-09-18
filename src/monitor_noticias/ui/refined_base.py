@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
-from urllib.parse import quote
+from urllib.parse import quote, quote_plus
 
 from PySide6.QtCore import Qt, QThread, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QPushButton, QProgressBar, QVBoxLayout, QWidget
 
 from monitor_noticias.ui.controller import MainUiController, UiState
+from monitor_noticias.networking.google_news_resolver import GoogleNewsUrlResolver, is_google_news, is_safe_news_link
+
+_NEWS_URL_RESOLVER = GoogleNewsUrlResolver()
 
 
 def secondary(button: QPushButton) -> QPushButton:
@@ -66,6 +69,34 @@ def open_url(url: str) -> None:
 def copy_text(text: str) -> None:
     QApplication.clipboard().setText(text)
 
+
+def resolve_news_url(url: str, title: str = "", source: str = "") -> str:
+    candidate = (url or "").strip()
+    if is_google_news(candidate):
+        resolved = _NEWS_URL_RESOLVER.resolve(candidate)
+        if is_safe_news_link(resolved, allow_google_news=False):
+            return resolved
+    elif is_safe_news_link(candidate, allow_google_news=False):
+        return candidate
+    # Registros antigos corrompidos não possuem mais a URL original. Nesses casos
+    # oferecemos uma busca pelo título/fonte em vez de abrir um asset/script.
+    query = " ".join(value for value in (title.strip(), source.strip()) if value)
+    return f"https://www.google.com/search?q={quote_plus(query)}" if query else ""
+
+def open_news_url(url: str, title: str = "", source: str = "") -> None:
+    resolved = resolve_news_url(url, title, source)
+    if resolved:
+        open_url(resolved)
+
+def copy_news_url(url: str, title: str = "", source: str = "") -> None:
+    resolved = resolve_news_url(url, title, source)
+    if resolved:
+        copy_text(resolved)
+
+def open_news_whatsapp(title: str, url: str, source: str = "") -> None:
+    resolved = resolve_news_url(url, title, source)
+    if resolved:
+        open_url("https://wa.me/?text=" + quote(f"{title}\n{resolved}"))
 
 def open_whatsapp(title: str, url: str) -> None:
     open_url("https://wa.me/?text=" + quote(f"{title}\n{url}"))
