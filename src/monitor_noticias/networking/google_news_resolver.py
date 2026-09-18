@@ -12,12 +12,42 @@ def is_google_news(url:str)->bool:
     try:return "news.google.com" in (urlsplit(url).hostname or "").lower()
     except Exception:return "news.google.com" in url.lower()
 
+_BLOCKED_HOST_PARTS = (
+    "google-analytics.com", "googletagmanager.com", "doubleclick.net",
+    "googleadservices.com", "gstatic.com", "googleusercontent.com",
+)
+_BLOCKED_EXTENSIONS = (
+    ".js", ".css", ".json", ".xml", ".map", ".ico", ".svg",
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".woff", ".woff2",
+    ".ttf", ".mp4", ".mp3",
+)
+
+def is_safe_news_link(url:str, *, allow_google_news:bool=True)->bool:
+    try:
+        parsed=urlsplit((url or "").strip())
+        host=(parsed.hostname or "").lower()
+        path=(parsed.path or "").lower()
+        if parsed.scheme not in {"http","https"} or not host:
+            return False
+        if any(part in host for part in _BLOCKED_HOST_PARTS):
+            return False
+        if path.endswith(_BLOCKED_EXTENSIONS):
+            return False
+        if any(token in path for token in ("/analytics", "/collect", "/pixel", "/tracking", "/tag/")):
+            return False
+        if is_google_news(url):
+            return allow_google_news
+        return True
+    except Exception:
+        return False
+
 class GoogleNewsUrlResolver:
     def __init__(self,http:HttpClient|None=None)->None:self.http=http or HttpClient(); self.cache={}
     def resolve(self,input_:str)->str:
         if not is_google_news(input_):return input_
         if input_ in self.cache:return self.cache[input_]
-        decoded=self._resolve(input_); resolved=decoded if decoded and decoded.startswith("http") and not is_google_news(decoded) else input_
+        decoded=self._resolve(input_)
+        resolved=decoded if decoded and is_safe_news_link(decoded, allow_google_news=False) else input_
         self.cache[input_]=resolved; return resolved
     def _resolve(self,input_:str):
         try:id_=urlsplit(input_).path.rstrip("/").split("/")[-1].strip()
@@ -33,7 +63,7 @@ class GoogleNewsUrlResolver:
             for i,ch in enumerate(text[start:],start):
                 if ord(ch)<32 or ch=="\x00":end=i;break
             candidate=text[start:end].strip()
-            return candidate if urlsplit(candidate).hostname and not is_google_news(candidate) else None
+            return candidate if is_safe_news_link(candidate, allow_google_news=False) else None
         except Exception:return None
     def _signed(self,id_:str):
         try:
@@ -63,10 +93,10 @@ class GoogleNewsUrlResolver:
                 if isinstance(row,list) and len(row)>2 and isinstance(row[2],str) and row[2]:
                     try:decoded=json.loads(row[2])
                     except Exception:continue
-                    if isinstance(decoded,list) and len(decoded)>1 and isinstance(decoded[1],str) and decoded[1].startswith("http") and not is_google_news(decoded[1]):return decoded[1]
+                    if isinstance(decoded,list) and len(decoded)>1 and isinstance(decoded[1],str) and is_safe_news_link(decoded[1], allow_google_news=False):return decoded[1]
         except Exception:pass
         normalized=body.replace("\\/","/").replace("\\u003d","=").replace("\\u0026","&").replace("\\u0025","%")
         for candidate in re.findall(r'https?://[^\\"\s]+',normalized):
             candidate=candidate.rstrip(",]}\\")
-            if not is_google_news(candidate) and "googleusercontent.com" not in candidate.lower() and "gstatic.com" not in candidate.lower():return candidate
+            if is_safe_news_link(candidate, allow_google_news=False):return candidate
         return None
