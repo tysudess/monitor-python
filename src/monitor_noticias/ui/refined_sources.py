@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QComboBox,
     QHBoxLayout,
@@ -43,7 +44,7 @@ class SourceRow(QWidget):
         sig.setFixedSize(58, 42)
         sig.setAlignment(Qt.AlignmentFlag.AlignCenter)
         sig.setStyleSheet(
-            "color:#ffffff;background:#087af7;border:1px solid #22c5ff;"
+            "color:#087AF7;background:#EAF4FF;border:1px solid #D7E8FA;"
             "border-radius:9px;font-weight:800;"
         )
         row.addWidget(sig)
@@ -66,13 +67,13 @@ class SourceRow(QWidget):
         self.badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         if not enabled and all_mode:
             badge_text = "Incluída por Todos"
-            badge_style = "color:#18e39c;border:1px solid #0ba779;background:#063b3f;"
+            badge_style = "color:#087B57;border:1px solid #B7E7D4;background:#EEFAF5;"
         elif checked:
             badge_text = "Selecionada"
-            badge_style = "color:#18e39c;border:1px solid #0ba779;background:#063b3f;"
+            badge_style = "color:#087B57;border:1px solid #B7E7D4;background:#EEFAF5;"
         else:
             badge_text = "Disponível"
-            badge_style = "color:#8fc9e9;border:1px solid #0a6b98;background:#062d49;"
+            badge_style = "color:#087B57;border:1px solid #B7E7D4;background:#EEFAF5;"
         self.badge.setText(badge_text)
         self.badge.setStyleSheet(
             badge_style + "border-radius:7px;padding:5px 9px;font-weight:700;"
@@ -178,8 +179,24 @@ class SourcesPage(BasePage):
         self.root.addWidget(tools)
 
         self.list = QListWidget()
+        self.list.setObjectName("sourcesList")
         self.list.setSpacing(4)
         self.list.setAlternatingRowColors(False)
+        self.list.setUniformItemSizes(True)
+        self.list.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.list.verticalScrollBar().setSingleStep(22)
+        self.list.verticalScrollBar().setPageStep(220)
+        self.list.setStyleSheet(
+            "QListWidget#sourcesList{background:#FFFFFF;border:1px solid #D9E8F7;border-radius:12px;padding:5px;}"
+            "QListWidget#sourcesList::item{background:#FFFFFF;border:1px solid #DDEAF7;border-radius:9px;margin:1px 0;}"
+            "QScrollBar:vertical{background:#F2F7FD;width:12px;margin:4px 2px 4px 2px;border-radius:6px;}"
+            "QScrollBar::handle:vertical{background:#8CBCEB;min-height:44px;border-radius:5px;}"
+            "QScrollBar::handle:vertical:hover{background:#5B9FE2;}"
+            "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}"
+            "QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical{background:transparent;}"
+        )
         self.root.addWidget(self.list, 1)
 
         self.query.textChanged.connect(lambda _text: self._request_refresh())
