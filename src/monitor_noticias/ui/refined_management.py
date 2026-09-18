@@ -53,10 +53,10 @@ class HistoryPage(BasePage):
         if signature!=self._signature:
             self._signature=signature
             if self._mode=="news":
-                cards=[NewsCard(n, actions_enabled=False) for n in items]
+                cards=[NewsCard(n, actions_enabled=True) for n in items]
                 heights=[128 if getattr(n,"snippet","") else 110 for n in items]
             else:
-                cards=[VideoCard(v, actions_enabled=False) for v in items]
+                cards=[VideoCard(v, actions_enabled=True) for v in items]
                 heights=[106]*len(items)
             self.list.set_cards(cards,heights)
 
@@ -64,10 +64,37 @@ class HistoryPage(BasePage):
 class TermColumn(QFrame):
     def __init__(self, title: str, subtitle: str, purple: bool, add_cb, remove_cb) -> None:
         super().__init__(); self.setObjectName("techCard"); self.add_cb=add_cb; self.remove_cb=remove_cb
+        self.setStyleSheet("QFrame#techCard{background:#FFFFFF;border:1px solid #D9E8F7;border-radius:12px;}")
         root=QVBoxLayout(self); root.setContentsMargins(18,16,18,16); root.setSpacing(10)
-        head=QHBoxLayout(); icon=QLabel("▶" if purple else "▤"); icon.setFixedSize(54,54); icon.setAlignment(Qt.AlignmentFlag.AlignCenter); icon.setStyleSheet(("color:#c170ff;background:#352466;border:1px solid #7242a8;" if purple else "color:#5bd4ff;background:#075b8e;border:1px solid #0a86b8;")+"border-radius:10px;font-size:23px;"); head.addWidget(icon); hb=QVBoxLayout(); t=QLabel(title); t.setObjectName("sectionTitle"); sub=QLabel(subtitle); sub.setObjectName("smallText"); hb.addWidget(t); hb.addWidget(sub); head.addLayout(hb,1); self.counter=QLabel("0 termo(s)"); self.counter.setStyleSheet("color:#d8ebfa;background:#075284;border:1px solid #0b6c9c;border-radius:8px;padding:8px 12px;font-weight:800;"); head.addWidget(self.counter); root.addLayout(head)
-        addrow=QHBoxLayout(); self.edit=QLineEdit(); self.edit.setPlaceholderText("⌕   Novo termo"); button=secondary(QPushButton("＋  Adicionar")); addrow.addWidget(self.edit,1); addrow.addWidget(button); root.addLayout(addrow)
-        self.list=QListWidget(); root.addWidget(self.list,1); delete=dangerous(QPushButton("▣  Excluir selecionado")); root.addWidget(delete,0,Qt.AlignmentFlag.AlignRight)
+        head=QHBoxLayout()
+        icon=QLabel("▶" if purple else "▤"); icon.setFixedSize(54,54); icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon.setStyleSheet(
+            ("color:#8A3FF0;background:#F3EDFF;border:1px solid #DFCFF7;" if purple else
+             "color:#087AF7;background:#EAF4FF;border:1px solid #D2E6FA;")
+            +"border-radius:10px;font-size:23px;font-weight:800;"
+        )
+        head.addWidget(icon)
+        hb=QVBoxLayout(); t=QLabel(title); t.setObjectName("sectionTitle"); sub=QLabel(subtitle); sub.setObjectName("smallText")
+        hb.addWidget(t); hb.addWidget(sub); head.addLayout(hb,1)
+        self.counter=QLabel("0 termo(s)")
+        self.counter.setStyleSheet("color:#087AF7;background:#EEF6FF;border:1px solid #D5E7FA;border-radius:8px;padding:8px 12px;font-weight:800;")
+        head.addWidget(self.counter); root.addLayout(head)
+        addrow=QHBoxLayout(); self.edit=QLineEdit(); self.edit.setPlaceholderText("⌕   Novo termo")
+        button=QPushButton("＋  Adicionar")
+        addrow.addWidget(self.edit,1); addrow.addWidget(button); root.addLayout(addrow)
+        self.list=QListWidget()
+        self.list.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
+        self.list.verticalScrollBar().setSingleStep(18)
+        self.list.setStyleSheet(
+            "QListWidget{background:#FFFFFF;border:0;padding:0;}"
+            "QListWidget::item{color:#17386C;background:#FBFDFF;border:1px solid #D9E8F7;border-radius:7px;padding:7px 10px;margin:2px 0;}"
+            "QListWidget::item:selected{color:#087AF7;background:#EAF4FF;border-color:#8ABEF2;}"
+            "QScrollBar:vertical{background:#F2F7FD;width:10px;border-radius:5px;}"
+            "QScrollBar::handle:vertical{background:#8CBCEB;min-height:38px;border-radius:5px;}"
+            "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}"
+        )
+        root.addWidget(self.list,1)
+        delete=dangerous(QPushButton("▣  Excluir selecionado")); root.addWidget(delete,0,Qt.AlignmentFlag.AlignRight)
         button.clicked.connect(self._add); delete.clicked.connect(self._delete)
     def _add(self):
         value=self.edit.text(); self.add_cb(value); self.edit.clear()
