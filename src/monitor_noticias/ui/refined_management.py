@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Iterable
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QAbstractItemView, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget, QPushButton, QVBoxLayout
 
 from monitor_noticias.ui.controller import MainUiController
 from monitor_noticias.ui.refined_base import BasePage, card, dangerous, format_time, secondary
@@ -83,7 +83,7 @@ class TermColumn(QFrame):
         button=QPushButton("＋  Adicionar")
         addrow.addWidget(self.edit,1); addrow.addWidget(button); root.addLayout(addrow)
         self.list=QListWidget()
-        self.list.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
+        self.list.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.list.verticalScrollBar().setSingleStep(18)
         self.list.setStyleSheet(
             "QListWidget{background:#FFFFFF;border:0;padding:0;}"
