@@ -46,7 +46,7 @@ class AutomationBlock(QFrame):
         icon.setFixedSize(44, 44)
         icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon.setStyleSheet(
-            f"color:{color};background:#063052;border:1px solid {color};"
+            f"color:{color};background:#F2F7FF;border:1px solid #D7E6F7;"
             "border-radius:9px;font-size:21px;font-weight:800;"
         )
         top.addWidget(icon)
@@ -67,7 +67,7 @@ class AutomationBlock(QFrame):
         bottom = QHBoxLayout()
         self.badge = QLabel("Automático ativo")
         self.badge.setStyleSheet(
-            "color:#14e69a;border:1px solid #0bb47b;border-radius:7px;"
+            "color:#087B57;background:#EEFAF5;border:1px solid #B7E7D4;border-radius:7px;"
             "padding:4px 8px;font-weight:700;"
         )
         bottom.addWidget(self.badge)
@@ -88,8 +88,8 @@ class AutomationBlock(QFrame):
     def _sync_badge(self, checked: bool) -> None:
         self.badge.setText("Automático ativo" if checked else "Automático pausado")
         self.badge.setStyleSheet(
-            ("color:#14e69a;border:1px solid #0bb47b;" if checked else
-             "color:#ffc21a;border:1px solid #a87900;")
+            ("color:#087B57;background:#EEFAF5;border:1px solid #B7E7D4;" if checked else
+             "color:#9A6900;background:#FFF8E1;border:1px solid #F1D78A;")
             + "border-radius:7px;padding:4px 8px;font-weight:700;"
         )
 
@@ -146,7 +146,7 @@ class SettingsPage(BasePage):
         lock.setFixedSize(50, 50)
         lock.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lock.setStyleSheet(
-            "color:#56cbff;background:#075884;border:1px solid #0a86b8;"
+            "color:#087AF7;background:#EAF4FF;border:1px solid #D2E6FA;"
             "border-radius:10px;font-size:23px;"
         )
         ph.addWidget(lock)
@@ -198,6 +198,10 @@ class SettingsPage(BasePage):
         self.proxy_message = QLabel()
         self.proxy_message.setObjectName("smallText")
         self.proxy_message.setWordWrap(True)
+        self.proxy_message.setStyleSheet(
+            "color:#087B57;background:#EEFAF5;border:1px solid #B7E7D4;"
+            "border-radius:7px;padding:7px 10px;"
+        )
         proxy_layout.addWidget(self.proxy_message)
         upper.addWidget(proxy, 3)
 
@@ -219,7 +223,7 @@ class SettingsPage(BasePage):
         general_layout.addLayout(g1)
         divider = QFrame()
         divider.setFixedHeight(1)
-        divider.setStyleSheet("background:#0b5f85;border:0;")
+        divider.setStyleSheet("background:#D9E7F5;border:0;")
         general_layout.addWidget(divider)
         g2 = QHBoxLayout()
         stext = QVBoxLayout()
@@ -274,6 +278,10 @@ class SettingsPage(BasePage):
         video_layout.addLayout(vrow)
         self.auto_message = QLabel()
         self.auto_message.setObjectName("smallText")
+        self.auto_message.setStyleSheet(
+            "color:#087B57;background:#EEFAF5;border:1px solid #B7E7D4;"
+            "border-radius:7px;padding:6px 9px;"
+        )
         video_layout.addWidget(self.auto_message)
         self.root.addWidget(video_card)
         self.root.addStretch()
