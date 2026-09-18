@@ -24,6 +24,10 @@ class CardList(QTableWidget):
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.verticalScrollBar().setSingleStep(20)
+        self.horizontalScrollBar().setSingleStep(20)
         self.horizontalHeader().setStretchLastSection(True)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet(
