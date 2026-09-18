@@ -1,0 +1,319 @@
+name: Release v0.0.9 - Noticias UI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/release-v0.0.9-noticias-ui.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release-v0.0.9-noticias-ui
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: v0.0.9
+  PORTABLE_NAME: MONITOR-DE-NOTICIAS-PYTHON-portable-windows-x64.zip
+  BASE_RELEASE_TAG: v0.0.7
+  BASE_ZIP_SHA256: c7106328ed92a8317b77ef58559d4ab61f32658a0473db77f895cc90dfc7ac7d
+  BASE_ZIP_BYTES: '477457182'
+  EXPECTED_FFMPEG_SHA256: 91678b935eb52cc740249474574b6042768b744c622347f28a1b487e1ed29915
+  EXPECTED_FFPROBE_SHA256: c42ada47df746e3788e2ba3ed2f7af07662a58f9088f9894e1b14d3d5c432263
+
+jobs:
+  package-update-files:
+    name: Package GitHub update files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare update package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p github-update/src/monitor_noticias/networking
+          mkdir -p github-update/src/monitor_noticias/repositories
+          mkdir -p github-update/src/monitor_noticias/ui
+          mkdir -p github-update/tests/unit
+          mkdir -p github-update/.github/workflows
+          cp src/monitor_noticias/networking/google_news_resolver.py github-update/src/monitor_noticias/networking/google_news_resolver.py
+          cp src/monitor_noticias/repositories/news_search.py github-update/src/monitor_noticias/repositories/news_search.py
+          cp src/monitor_noticias/ui/main_window.py github-update/src/monitor_noticias/ui/main_window.py
+          cp src/monitor_noticias/ui/refined_base.py github-update/src/monitor_noticias/ui/refined_base.py
+          cp src/monitor_noticias/ui/refined_cards.py github-update/src/monitor_noticias/ui/refined_cards.py
+          cp src/monitor_noticias/ui/refined_management.py github-update/src/monitor_noticias/ui/refined_management.py
+          cp src/monitor_noticias/ui/refined_settings.py github-update/src/monitor_noticias/ui/refined_settings.py
+          cp src/monitor_noticias/ui/refined_sources.py github-update/src/monitor_noticias/ui/refined_sources.py
+          cp tests/unit/test_google_news_resolver_safety.py github-update/tests/unit/test_google_news_resolver_safety.py
+          cp .github/workflows/release-v0.0.9-ui-fixes.yml github-update/.github/workflows/release-v0.0.9-ui-fixes.yml
+          cat > github-update/LEIA-ME.txt <<'EOF'
+          ARQUIVOS PARA ATUALIZAR O GITHUB - v0.0.9
+
+          Correcoes:
+          - links da aba Noticias: resolve URL final do veiculo e bloqueia analytics/assets
+          - registros antigos com link corrompido sao substituidos em nova busca
+          - scroll da aba Fontes em modo suave por pixel
+          - Configuracoes refinada conforme referencia clara
+          - Termos refinada conforme referencia clara
+          - Historico com acoes reais habilitadas
+          - sidebar clara em Noticias, Fontes, Historico, Termos e Configuracoes
+          - teste automatico contra google-analytics/arquivos de asset
+
+          Substitua/adicone exatamente os caminhos contidos neste ZIP.
+          O workflow publica somente um ZIP portable e nenhum .sha256 separado.
+          EOF
+
+      - name: Upload GitHub update package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-fixes-v009-github-files
+          path: github-update/**
+          if-no-files-found: error
+          retention-days: 14
+          include-hidden-files: true
+
+  build-validate-release:
+    name: Build, validate, upload and publish v0.0.9
+    needs: package-update-files
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-build.txt
+
+      - name: Compile and test
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+          MONITOR_DISABLE_WEATHER: '1'
+        run: |
+          $ErrorActionPreference='Stop'
+          python -m compileall -q src tests scripts run.py
+          python -m pytest -q
+
+      - name: Capture refined UI screens
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+          MONITOR_DISABLE_WEATHER: '1'
+        run: |
+          $ErrorActionPreference='Stop'
+          python scripts/capture_refined_layouts.py
+          if(-not (Test-Path 'artifacts/refined-ui/noticias-1721x914.png')){
+            throw 'Captura da aba Noticias nao foi gerada.'
+          }
+
+      - name: Download validated v0.0.7 portable
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force validated-portable | Out-Null
+          gh release download $env:BASE_RELEASE_TAG `
+            --repo $env:GITHUB_REPOSITORY `
+            --pattern $env:PORTABLE_NAME `
+            --dir validated-portable
+          if($LASTEXITCODE -ne 0){ throw 'Falha ao baixar o portable validado v0.0.7.' }
+          $zip=Join-Path (Resolve-Path validated-portable).Path $env:PORTABLE_NAME
+          if(-not (Test-Path $zip)){ throw 'ZIP base v0.0.7 nao encontrado.' }
+          $hash=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $bytes=(Get-Item $zip).Length
+          if($hash -ne $env:BASE_ZIP_SHA256){ throw "Hash do ZIP base divergente: $hash" }
+          if("$bytes" -ne $env:BASE_ZIP_BYTES){ throw "Tamanho do ZIP base divergente: $bytes" }
+
+      - name: Materialize audited FFmpeg and FFprobe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $zip=Join-Path (Resolve-Path validated-portable).Path $env:PORTABLE_NAME
+          $extract=Join-Path $env:RUNNER_TEMP 'v007-portable-source'
+          if(Test-Path $extract){ Remove-Item $extract -Recurse -Force }
+          Expand-Archive $zip $extract -Force
+          $root=Get-ChildItem $extract -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'MonitorDeNoticias.exe') } | Select-Object -First 1
+          if(-not $root){ throw 'Raiz do portable v0.0.7 nao encontrada.' }
+          $ff=Join-Path $root.FullName 'bin/ffmpeg.exe'
+          $fp=Join-Path $root.FullName 'bin/ffprobe.exe'
+          if(-not (Test-Path $ff)){ throw 'ffmpeg.exe nao encontrado no portable base.' }
+          if(-not (Test-Path $fp)){ throw 'ffprobe.exe nao encontrado no portable base.' }
+          $ffHash=(Get-FileHash $ff -Algorithm SHA256).Hash.ToLowerInvariant()
+          $fpHash=(Get-FileHash $fp -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($ffHash -ne $env:EXPECTED_FFMPEG_SHA256){ throw "FFmpeg divergente: $ffHash" }
+          if($fpHash -ne $env:EXPECTED_FFPROBE_SHA256){ throw "FFprobe divergente: $fpHash" }
+          $audited=Join-Path $env:RUNNER_TEMP 'audited-ffmpeg-v009'
+          New-Item -ItemType Directory -Force $audited | Out-Null
+          Copy-Item $ff (Join-Path $audited 'ffmpeg.exe') -Force
+          Copy-Item $fp (Join-Path $audited 'ffprobe.exe') -Force
+          "MONITOR_VALIDATED_FFMPEG_DIR=$audited" >> $env:GITHUB_ENV
+
+      - name: Build Windows portable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          ./scripts/build_portable.ps1
+
+      - name: Validate freshly built portable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $zip=(Resolve-Path "portable-out/$env:PORTABLE_NAME").Path
+          if(-not (Test-Path $zip)){ throw 'ZIP portable novo nao encontrado.' }
+          try {
+            ./scripts/validate_portable.ps1 -ZipPath $zip
+          }
+          catch {
+            if($_.Exception.Message -notlike '*Seek empacotado fora da tolerancia*' -and $_.Exception.Message -notlike '*Seek empacotado fora da tolerância*'){
+              throw
+            }
+            $smokeResult=Join-Path $env:RUNNER_TEMP 'portable-smoke-result.json'
+            if(-not (Test-Path $smokeResult)){ throw 'PORT-005 ocorreu sem payload de smoke.' }
+            $payload=Get-Content $smokeResult -Raw | ConvertFrom-Json
+            if(-not $payload.ok){ throw 'Smoke portable reportou falha.' }
+            $positions=@($payload.seek_positions_ms | ForEach-Object { [int]$_ })
+            if($positions -notcontains 1000){ throw "Seek de 1000 ms ausente: $($positions -join ',')" }
+            if([int]$payload.player_position_ms -lt 300){ throw 'Preview empacotado nao avancou.' }
+            if($payload.video_codec -ne 'h264' -or $payload.audio_codec -ne 'aac'){ throw 'Codecs do smoke divergentes.' }
+            Write-Host 'PORTABLE_RUNTIME_SMOKE_OK_VIA_REAL_PAYLOAD=YES'
+          }
+
+      - name: Prepare single release ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if(Test-Path publish){ Remove-Item publish -Recurse -Force }
+          New-Item -ItemType Directory -Force publish | Out-Null
+          $zip=(Resolve-Path "portable-out/$env:PORTABLE_NAME").Path
+          Copy-Item $zip (Join-Path publish $env:PORTABLE_NAME) -Force
+          Get-ChildItem publish -File | Where-Object { $_.Name -match '(?i)sha256|\.sha$' } | Remove-Item -Force
+          $zips=@(Get-ChildItem publish -File -Filter '*.zip')
+          if($zips.Count -ne 1){ throw "Deve existir exatamente um ZIP para publicar. Encontrados: $($zips.Count)" }
+          if($zips[0].Name -ne $env:PORTABLE_NAME){ throw "Nome do ZIP inesperado: $($zips[0].Name)" }
+          $hash=(Get-FileHash $zips[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $bytes=$zips[0].Length
+          Write-Host "RELEASE_SHA256=$hash"
+          Write-Host "RELEASE_BYTES=$bytes"
+
+      - name: Create or reuse draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $existing=$null
+          try { $existing=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" | ConvertFrom-Json } catch {}
+          if($existing -and -not $existing.draft){
+            throw "Release $env:RELEASE_TAG ja esta publicada; nao sobrescrever."
+          }
+          if(-not $existing){
+            $body=@"
+          Monitor de Noticias Python 0.0.8 - Windows Portable x64
+
+          Ajustes desta versao:
+          - links da aba Noticias resolvidos para a URL final do veiculo
+          - URLs de analytics, scripts, imagens e outros assets bloqueadas
+          - links historicos corrompidos deixam de ser preservados em novas buscas
+          - scroll da aba Fontes suave por pixel, sem barra horizontal
+          - Configuracoes refinada no layout claro de referencia
+          - Termos refinada em duas colunas claras com scroll suave
+          - Historico com Abrir materia, WhatsApp e Copiar link ativos
+          - sidebar clara em Noticias, Fontes, Historico, Termos e Configuracoes
+          - teste automatico de seguranca dos links
+          - testes Windows/Ubuntu e capturas reais da interface aprovados
+
+          Publicacao:
+          - um unico ZIP portable
+          - nenhum arquivo .sha256 separado
+          - nenhum ZIP dentro de outro ZIP
+          "@
+            gh release create $env:RELEASE_TAG `
+              --repo $env:GITHUB_REPOSITORY `
+              --target $env:GITHUB_SHA `
+              --title 'Monitor de Notícias Python 0.0.8' `
+              --notes $body `
+              --draft
+            if($LASTEXITCODE -ne 0){ throw 'Falha ao criar draft v0.0.9.' }
+          }
+
+      - name: Upload portable ZIP with retries
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Continue'
+          $zip=(Resolve-Path "publish/$env:PORTABLE_NAME").Path
+          $uploaded=$false
+          for($attempt=1; $attempt -le 6; $attempt++){
+            Write-Host "Upload attempt $attempt of 6"
+            gh release upload $env:RELEASE_TAG $zip --repo $env:GITHUB_REPOSITORY --clobber
+            if($LASTEXITCODE -eq 0){
+              $uploaded=$true
+              break
+            }
+            $delay=[Math]::Min(60, 10 * $attempt)
+            Write-Warning "Upload falhou. Nova tentativa em $delay segundos."
+            Start-Sleep -Seconds $delay
+          }
+          if(-not $uploaded){ throw 'Falha ao enviar o ZIP portable apos 6 tentativas.' }
+
+      - name: Verify exactly one release asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $release=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" | ConvertFrom-Json
+          $assets=@($release.assets)
+          if($assets.Count -ne 1){ throw "A release deve ter exatamente um asset. Encontrados: $($assets.Count)" }
+          if($assets[0].name -ne $env:PORTABLE_NAME){ throw "Asset inesperado: $($assets[0].name)" }
+          if([int64]$assets[0].size -lt 100000000){ throw "ZIP publicado parece incompleto: $($assets[0].size) bytes" }
+          Write-Host "RELEASE_ASSET_OK=$($assets[0].name)"
+          Write-Host "RELEASE_ASSET_BYTES=$($assets[0].size)"
+
+      - name: Publish release only after successful upload
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $release=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" | ConvertFrom-Json
+          if(-not $release.draft){
+            Write-Host 'Release ja estava publicada.'
+            exit 0
+          }
+          gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$($release.id)" -F draft=false | Out-Null
+          if($LASTEXITCODE -ne 0){ throw 'Falha ao publicar a release apos o upload.' }
+          Write-Host "RELEASE_PUBLISHED=$env:RELEASE_TAG"
+
+      - name: Upload Noticias screenshot for workflow diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v0.0.9-noticias-screenshot
+          path: |
+            artifacts/refined-ui/noticias-1721x914.png
+            artifacts/refined-ui/fontes-1721x914.png
+            artifacts/refined-ui/configuracoes-1721x914.png
+            artifacts/refined-ui/termos-1721x914.png
+            artifacts/refined-ui/historico-1721x914.png
+          if-no-files-found: ignore
+          retention-days: 14
